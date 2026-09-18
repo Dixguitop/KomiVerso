@@ -1,19 +1,3 @@
-// Reemplazo de window.storage (disponible solo dentro de un Artifact de Claude)
-// usando localStorage del navegador, para que la app funcione como proyecto
-// independiente.
-//
-// AVISO IMPORTANTE: localStorage es local a CADA navegador/dispositivo.
-// Dentro del Artifact de Claude, las claves guardadas con shared=true se
-// comparten entre todos los usuarios (por eso ahí los comentarios y las
-// cuentas eran "reales" entre distintas personas). Aquí, sin un backend
-// propio, TODO queda guardado solo en el navegador de cada persona: si
-// alguien crea una cuenta en su celular, no podrá iniciar sesión con ese
-// mismo correo desde otro dispositivo, y los comentarios que escriba solo
-// los verá ella misma. Para que las cuentas y comentarios sean de verdad
-// compartidos entre usuarios necesitas un backend (por ejemplo una API en
-// Node.js con una base de datos) — puedo ayudarte a construir uno si
-// llegas a ese punto.
-
 const PREFIX = "mangaverso:";
 
 function fullKey(key, shared) {

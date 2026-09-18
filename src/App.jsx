@@ -7,14 +7,62 @@ import {
   TrendingUp, Sparkles, Clock, CheckCircle, PauseCircle, XCircle, PlusCircle,
   LogOut, Camera, Award, BarChart2, Filter, Globe, Type, Palette, Grid,
   List as ListIcon, ZoomIn, ZoomOut, RotateCcw, AlertTriangle, Send, Loader,
-  Info, Mail, BookOpen, Users, Layers, BarChart3, Bell, Languages
+  Info, Mail, BookOpen, Users, Layers, BarChart3, Bell, Languages, Compass,
+  Image as ImageIcon, Trash2, Sliders, Layout, LayoutGrid, Wand2, ArrowUpDown, Check
 } from "lucide-react";
 
-/* ============================================================
-   CONFIG
-   ============================================================ */
 const API = import.meta.env.VITE_API_URL || "https://komiverso-server.onrender.com/api";
 const COVERS = "https://komiverso-server.onrender.com/covers";
+
+const SOCIAL_LINKS = {
+  discord: "https://discord.gg/c9TMgFfNGH",
+  tiktok: "https://www.tiktok.com/@komi.verso?_r=1&_t=ZS-99pgvlGtSCL",
+  paypal: "https://paypal.me/DiegoRivas497",
+};
+
+const APK_DOWNLOAD_URL = "https://komi-verso-downloadapp.vercel.app/";
+
+const EXOCLICK_ZONE_ID = "1112834";
+const ADSTERRA_KEY = "f9070d64740e53c83baf5a67aedd9520";
+const ADS_FALLBACK_TIMEOUT_MS = 3500;
+const AD_MIN_SECONDS = 15;
+const AD_EVERY_N_CHAPTERS = 4;
+const ADSENSE_CONFIGURADO = !!EXOCLICK_ZONE_ID || !!ADSTERRA_KEY;
+const EXOCLICK_SCRIPT_SRC = "https://a.magsrv.com/ad-provider.js";
+
+function buildAdHtml() {
+  return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>html,body{margin:0;padding:0;background:transparent;overflow:hidden;display:flex;align-items:center;justify-content:center;height:100%;}</style>
+</head><body><div id="slot"></div><script>
+var primaryLoaded=false, fallbackShown=false;
+function showFallback(){
+  if(fallbackShown||primaryLoaded)return; fallbackShown=true;
+  var slot=document.getElementById("slot"); slot.innerHTML="";
+  ${ADSTERRA_KEY ? `
+  var opts=document.createElement("script"); opts.type="text/javascript";
+  opts.text="atOptions = { key: '${ADSTERRA_KEY}', format: 'iframe', height: 250, width: 300, params: {} };";
+  slot.appendChild(opts);
+  var invoke=document.createElement("script"); invoke.type="text/javascript";
+  invoke.src="//www.highperformanceformat.com/${ADSTERRA_KEY}/invoke.js";
+  slot.appendChild(invoke);` : ``}
+}
+${EXOCLICK_ZONE_ID ? `
+var ins=document.createElement("ins"); ins.className="eas6a97888e2";
+ins.setAttribute("data-zoneid","${EXOCLICK_ZONE_ID}");
+document.getElementById("slot").appendChild(ins);
+var exo=document.createElement("script"); exo.async=true;
+exo.setAttribute("data-cfasync","false"); exo.src="${EXOCLICK_SCRIPT_SRC}";
+exo.onload=function(){ primaryLoaded=true; try{(window.AdProvider=window.AdProvider||[]).push({serve:{}});}catch(e){} };
+exo.onerror=showFallback;
+document.body.appendChild(exo);
+setTimeout(showFallback, ${ADS_FALLBACK_TIMEOUT_MS});` : `showFallback();`}
+</script></body></html>`;
+}
+
+const PLANS = [
+  { id: "free", nombre: "Free", precio: "$0", periodo: "", detalle: "Anuncios cada 4 capítulos" },
+  { id: "fan", nombre: "Fan", precio: "$7", periodo: "USD / mes", detalle: "Te quitamos los anuncios y nos estarias apoyando un montón ♥." },
+];
 
 function resolveAssetUrl(src) {
   if (!src) return src;
@@ -54,6 +102,73 @@ const PRESETS = [
   { id: "citrico", label: "Cítrico", mode: "light", bg: "#FDFBF1", surface: "#FFFFFF", surface2: "#F5F1D9", accent: "#E8A83B", text: "#242017", muted: "#8C8468", border: "#EDE6C4" },
 ];
 
+const XP_PER_CHAPTER = 15;
+const LEVEL_THRESHOLDS = (() => {
+  const t = [0];
+  for (let i = 1; i <= 50; i++) t.push(Math.floor(t[i - 1] + 40 + i * 18));
+  return t;
+})();
+function levelFromXp(xp) {
+  let lv = 1;
+  for (let i = 1; i < LEVEL_THRESHOLDS.length; i++) {
+    if (xp >= LEVEL_THRESHOLDS[i]) lv = i + 1;
+    else break;
+  }
+  return Math.min(50, lv);
+}
+function xpProgress(xp) {
+  const level = levelFromXp(xp);
+  const cur = LEVEL_THRESHOLDS[level - 1] || 0;
+  const next = LEVEL_THRESHOLDS[level] || (cur + 100);
+  return { level, cur, next, into: xp - cur, need: next - cur, pct: Math.min(100, Math.round(((xp - cur) / (next - cur || 1)) * 100)) };
+}
+const RANKS = [
+  { minLevel: 1, id: "novato", label: "Novato", icon: "·" },
+  { minLevel: 5, id: "lector", label: "Lector", icon: "·" },
+  { minLevel: 10, id: "asiduo", label: "Lector asiduo", icon: "·" },
+  { minLevel: 15, id: "veterano", label: "Veterano", icon: "★" },
+  { minLevel: 20, id: "erudito", label: "Erudito", icon: "·" },
+  { minLevel: 30, id: "leyenda", label: "Leyenda", icon: "◆" },
+  { minLevel: 40, id: "mitico", label: "Mítico", icon: "◇" },
+  { minLevel: 50, id: "inmortal", label: "Inmortal", icon: "▲" },
+];
+function rankForLevel(level) {
+  let r = RANKS[0];
+  for (const x of RANKS) if (level >= x.minLevel) r = x;
+  return r;
+}
+const TITLE_DEFS = [
+  { id: "primer_paso", label: "Primer paso", minChapters: 1 },
+  { id: "constante", label: "Lector constante", minChapters: 25 },
+  { id: "devorador", label: "Devorador de historias", minChapters: 100 },
+  { id: "biblioteca", label: "Biblioteca ambulante", minChapters: 250 },
+  { id: "archivero", label: "Archivero", minChapters: 500 },
+  { id: "rango_lector", label: "Rango: Lector", minLevel: 5 },
+  { id: "rango_asiduo", label: "Rango: Asiduo", minLevel: 10 },
+  { id: "rango_veterano", label: "Rango: Veterano", minLevel: 15 },
+  { id: "rango_erudito", label: "Rango: Erudito", minLevel: 20 },
+  { id: "rango_leyenda", label: "Rango: Leyenda", minLevel: 30 },
+  { id: "rango_mitico", label: "Rango: Mítico", minLevel: 40 },
+  { id: "rango_inmortal", label: "Rango: Inmortal", minLevel: 50 },
+];
+function titlesUnlocked(xp, chaptersRead) {
+  const level = levelFromXp(xp);
+  return TITLE_DEFS.filter(t => {
+    if (t.minChapters != null && chaptersRead >= t.minChapters) return true;
+    if (t.minLevel != null && level >= t.minLevel) return true;
+    return false;
+  }).map(t => t.label);
+}
+
+const DEFAULT_TAB_ORDER = ["home", "search", "calendar", "library", "profile"];
+const TAB_META = {
+  home: { labelKey: "home", Icon: Home },
+  search: { labelKey: "search", Icon: Search },
+  calendar: { labelKey: "calendar", Icon: CalendarIcon },
+  library: { labelKey: "library", Icon: Library },
+  profile: { labelKey: "profile", Icon: User },
+};
+
 const GENRE_MAP = {
   "Acción": "391b0423-d847-456f-aff0-8b0cfc03066b", "Aventura": "87cc87cd-a395-47af-b27a-93258283bbc6",
   "Romance": "423e2eae-a7a2-4a8b-ac03-a8351462d71d", "Comedia": "4d32cc48-9f00-4cca-9b5a-a839f0764984",
@@ -71,9 +186,6 @@ const GENRE_ID_TO_NAME = Object.fromEntries(Object.entries(GENRE_MAP).map(([name
 const ORIGINS = { "Manga (Japón)": "ja", "Manhwa (Corea)": "ko", "Manhua (China)": "zh" };
 const STATUSES = { "En emisión": "ongoing", "Finalizado": "completed", "Hiatus": "hiatus", "Cancelado": "cancelled" };
 
-/* ============================================================
-   i18n
-   ============================================================ */
 const LANGS = [
   { id: "es", label: "Español", flag: "🇪🇸" },
   { id: "en", label: "English", flag: "🇬🇧" },
@@ -101,9 +213,9 @@ const I18N = {
     manhua: "Manhua", novels: "Novelas", genres: "Géneros", community: "Comunidad",
     reviews: "Reseñas", publicLists: "Listas públicas", appearance: "Apariencia",
     reader: "Lector", notifications: "Notificaciones", account: "Cuenta", information: "Información",
-    about: "Acerca de", contact: "Contacto", reportProblem: "Reportar problema",
+    about: "Acerca de", contact: "Contacto", reportProblem: "Reportar problema", suggestion: "Sugerencias",
     theme: "Tema", readingFont: "Fuente de lectura", uiLanguage: "Idioma de la interfaz",
-    interfaceLangNote: "Los capítulos disponibles dependen de las traducciones existentes en MangaDex para cada idioma.",
+    interfaceLangNote: "los capitulos pueden caer, repórtalo.",
     noResults: "Sin resultados. Prueba con otros filtros.", retry: "Reintentar",
     loginToSave: "Inicia sesión para guardar tu biblioteca, favoritos e historial.",
     loginToProfile: "Inicia sesión para ver tu perfil.", loginToComment: "Inicia sesión para comentar y dejar reseñas",
@@ -130,10 +242,17 @@ const I18N = {
     completeFields: "Completa todos los campos.", minPassword: "La contraseña debe tener al menos 4 caracteres.",
     completeEmailPass: "Completa correo y contraseña.", passwordsMismatch: "Las contraseñas no coinciden.",
     enterEmailNewPass: "Ingresa tu correo y la nueva contraseña.",
-    aboutText: "KōmiVerso es un lector de manga, manhwa y manhua impulsado por MangaDex. Diseñado para una experiencia de lectura fluida y personalizable.",
+    aboutText: "KōmiVerso es una alternativa a otros lectores, su host actual es gratuito asi que presentara muchas caidas, esperamos con el apoyo de nuestros lectores y con ingresos de la misma app poder ofrecer un mejor servicio.",
     contactText: "¿Sugerencias o problemas? Escríbenos a soporte@komiverso.app",
     reportSent: "Problema reportado. Gracias por avisarnos.", reportPlaceholder: "Describe el problema…",
     sendReport: "Enviar reporte", close: "Cerrar",
+    suggestionTitleLabel: "Título", suggestionTitlePh: "Un título corto para tu idea…",
+    suggestionDescLabel: "Descripción", suggestionDescPh: "Describe tu sugerencia…",
+    suggestionHelpLabel: "¿Cómo ayudaría esto?", suggestionHelpPh: "Explica cómo mejoraría la app o a la comunidad…",
+    suggestionMissing: "Completa el título, la descripción y cómo ayudaría.",
+    suggestionSent: "¡Sugerencia enviada! Gracias por tu aporte.",
+    suggestionError: "No se pudo enviar. Intenta de nuevo más tarde.",
+    sendSuggestion: "Enviar sugerencia", sendingSuggestion: "Enviando…",
   },
   en: {
     home: "Home", search: "Search", calendar: "Calendar", library: "Library", profile: "Profile",
@@ -352,9 +471,6 @@ function useT() {
   return useCallback((key) => (I18N[lang] || I18N.es)[key] || I18N.es[key] || key, [lang]);
 }
 
-/* ============================================================
-   SCROLL REVEAL + GLOBAL STYLES
-   ============================================================ */
 function Reveal({ children, className = "", delay = 0 }) {
   const ref = useRef(null);
   const [on, setOn] = useState(false);
@@ -384,30 +500,43 @@ function Reveal({ children, className = "", delay = 0 }) {
 }
 
 const GLOBAL_CSS = `
-@keyframes kv-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes kv-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes kv-slide-in { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
 .kv-page-enter { animation: kv-fade-in 0.28s ease both; }
 .kv-drawer-enter { animation: kv-slide-in 0.28s ease both; }
+.kv-density-compact .kv-pad { padding: calc(0.5rem * var(--density-pad, 1)) !important; }
+.kv-density-spacious .kv-pad { padding: calc(1.15rem * var(--density-pad, 1)) !important; }
+.kv-density-compact .gap-3 { gap: 0.5rem !important; }
+.kv-density-compact .gap-2 { gap: 0.35rem !important; }
+.kv-density-compact .gap-4 { gap: 0.65rem !important; }
+.kv-density-spacious .gap-3 { gap: 1.1rem !important; }
+.kv-density-spacious .gap-2 { gap: 0.75rem !important; }
+.kv-density-spacious .gap-4 { gap: 1.35rem !important; }
+.kv-density-compact .py-3 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+.kv-density-compact .py-2 { padding-top: 0.35rem !important; padding-bottom: 0.35rem !important; }
+.kv-density-spacious .py-3 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+.kv-density-spacious .py-2 { padding-top: 0.65rem !important; padding-bottom: 0.65rem !important; }
+.kv-density-compact .px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+.kv-density-spacious .px-4 { padding-left: 1.35rem !important; padding-right: 1.35rem !important; }
+.kv-density-compact .mb-4 { margin-bottom: 0.75rem !important; }
+.kv-density-spacious .mb-4 { margin-bottom: 1.5rem !important; }
+.kv-density-compact .mb-3 { margin-bottom: 0.5rem !important; }
+.kv-density-spacious .mb-3 { margin-bottom: 1.1rem !important; }
 `;
 
-/* ============================================================
-   STORAGE HELPERS
-   ============================================================ */
 async function sget(key, shared = false) {
   try { const r = await window.storage.get(key, shared); return r ? JSON.parse(r.value) : null; }
   catch { return null; }
 }
 async function sset(key, value, shared = false) {
-  try { return await window.storage.set(key, JSON.stringify(value), shared); } catch { return null; }
+  try { return await window.storage.set(key, JSON.stringify(value), shared); }
+  catch (err) { console.error(`sset("${key}") falló:`, err); return null; }
 }
 function simpleHash(str) {
   let h = 0; for (let i = 0; i < str.length; i++) { h = (h << 5) - h + str.charCodeAt(i); h |= 0; }
   return "h" + Math.abs(h).toString(36) + str.length;
 }
 
-/* ============================================================
-   THEME CONTEXT
-   ============================================================ */
 const ThemeCtx = createContext(null);
 const useTheme = () => useContext(ThemeCtx);
 
@@ -432,6 +561,14 @@ function ThemeProvider({ children }) {
   const [lang, setLang] = useState("es");
   const [readerPrefs, setReaderPrefsState] = useState(DEFAULT_READER_PREFS);
   const [notifPrefs, setNotifPrefsState] = useState(DEFAULT_NOTIF_PREFS);
+  const [wallpaperUrl, setWallpaperUrlState] = useState(null);
+  const [wallpaperOpacity, setWallpaperOpacityState] = useState(0.16);
+  const [customAccent, setCustomAccentState] = useState(null);
+  const [density, setDensityState] = useState("comfortable");
+  const [amoled, setAmoledState] = useState(false);
+  const [libraryView, setLibraryViewState] = useState("grid");
+  const [coverSize, setCoverSizeState] = useState("md");
+  const [tabOrder, setTabOrderState] = useState(DEFAULT_TAB_ORDER);
   const [loaded, setLoaded] = useState(false);
   const [loadedFonts, setLoadedFonts] = useState(new Set());
 
@@ -444,16 +581,32 @@ function ThemeProvider({ children }) {
         setLang(prefs.lang || "es");
         if (prefs.reader) setReaderPrefsState({ ...DEFAULT_READER_PREFS, ...prefs.reader });
         if (prefs.notifications) setNotifPrefsState({ ...DEFAULT_NOTIF_PREFS, ...prefs.notifications });
+        if (prefs.wallpaperUrl) setWallpaperUrlState(prefs.wallpaperUrl);
+        if (prefs.wallpaperOpacity !== undefined) setWallpaperOpacityState(prefs.wallpaperOpacity);
+        if (prefs.customAccent) setCustomAccentState(prefs.customAccent);
+        if (prefs.density) setDensityState(prefs.density);
+        if (prefs.amoled != null) setAmoledState(!!prefs.amoled);
+        if (prefs.libraryView) setLibraryViewState(prefs.libraryView);
+        if (prefs.coverSize) setCoverSizeState(prefs.coverSize);
+        if (Array.isArray(prefs.tabOrder) && prefs.tabOrder.length) setTabOrderState(prefs.tabOrder);
       }
       setLoaded(true);
     })();
   }, []);
   useEffect(() => {
-    if (loaded) sset("prefs", { presetId, fontId, lang, reader: readerPrefs, notifications: notifPrefs });
-  }, [presetId, fontId, lang, readerPrefs, notifPrefs, loaded]);
+    if (loaded) sset("prefs", { presetId, fontId, lang, reader: readerPrefs, notifications: notifPrefs, wallpaperUrl, wallpaperOpacity, customAccent, density, amoled, libraryView, coverSize, tabOrder });
+  }, [presetId, fontId, lang, readerPrefs, notifPrefs, wallpaperUrl, wallpaperOpacity, customAccent, density, amoled, libraryView, coverSize, tabOrder, loaded]);
 
   const setReaderPrefs = (patch) => setReaderPrefsState(prev => ({ ...prev, ...patch }));
   const setNotifPrefs = (patch) => setNotifPrefsState(prev => ({ ...prev, ...patch }));
+  const setWallpaperUrl = (url) => setWallpaperUrlState(url);
+  const setWallpaperOpacity = (v) => setWallpaperOpacityState(v);
+  const setCustomAccent = (color) => setCustomAccentState(color);
+  const setDensity = (d) => setDensityState(d);
+  const setAmoled = (v) => setAmoledState(!!v);
+  const setLibraryView = (v) => setLibraryViewState(v);
+  const setCoverSize = (v) => setCoverSizeState(v);
+  const setTabOrder = (v) => setTabOrderState(v);
 
   const preset = PRESETS.find(p => p.id === presetId) || PRESETS[0];
   const font = FONTS.find(f => f.id === fontId) || FONTS[0];
@@ -476,36 +629,65 @@ function ThemeProvider({ children }) {
     }
   }, []);
 
+  const DENSITY_SCALE = { compact: 0.85, comfortable: 1, spacious: 1.18 };
+  const DENSITY_PAD = { compact: 0.7, comfortable: 1, spacious: 1.25 };
+  const DENSITY_GAP = { compact: 0.65, comfortable: 1, spacious: 1.3 };
+
+  const effectiveBg = amoled && preset.mode === "dark" ? "#000000" : preset.bg;
+  const effectiveSurface = amoled && preset.mode === "dark" ? "#050505" : preset.surface;
+  const effectiveSurface2 = amoled && preset.mode === "dark" ? "#0d0d0d" : preset.surface2;
+
   const vars = {
-    "--bg": preset.bg, "--surface": preset.surface, "--surface2": preset.surface2,
-    "--accent": preset.accent, "--text": preset.text, "--muted": preset.muted, "--border": preset.border,
+    "--bg": effectiveBg, "--surface": effectiveSurface, "--surface2": effectiveSurface2,
+    "--accent": customAccent || preset.accent, "--text": preset.text, "--muted": preset.muted, "--border": preset.border,
     "--font-body": font.family,
+    "--density-scale": DENSITY_SCALE[density] || 1,
+    "--density-pad": DENSITY_PAD[density] || 1,
+    "--density-gap": DENSITY_GAP[density] || 1,
   };
 
   return (
     <ThemeCtx.Provider value={{
       preset, presetId, setPresetId, font, fontId, setFontId, vars,
       readerPrefs, setReaderPrefs, notifPrefs, setNotifPrefs,
+      wallpaperUrl, setWallpaperUrl, wallpaperOpacity, setWallpaperOpacity,
+      customAccent, setCustomAccent, density, setDensity,
+      amoled, setAmoled, libraryView, setLibraryView, coverSize, setCoverSize,
+      tabOrder, setTabOrder,
     }}>
       <LangCtx.Provider value={{ lang, setLang }}>
-        <div style={{ ...vars, background: "var(--bg)", color: "var(--text)", fontFamily: "var(--font-body)", minHeight: "100vh" }}>
-          {children}
+        <div style={{ ...vars, background: "var(--bg)", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: `calc(1rem * var(--density-scale))`, minHeight: "100vh", position: "relative" }} className={`kv-density-${density || "comfortable"}`}>
+          {wallpaperUrl && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: "fixed",
+                inset: 0,
+                backgroundImage: `url(${wallpaperUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                opacity: wallpaperOpacity,
+                zIndex: 0,
+                pointerEvents: "none",
+              }}
+            />
+          )}
+          <div style={{ position: "relative", zIndex: 1 }}>
+            {children}
+          </div>
         </div>
       </LangCtx.Provider>
     </ThemeCtx.Provider>
   );
 }
 
-/* ============================================================
-   AUTH CONTEXT  (cuenta local: correo + contraseña, sin verificación)
-   ============================================================ */
 const AuthCtx = createContext(null);
 const useAuth = () => useContext(AuthCtx);
 
 async function apiJson(path, opts = {}) {
   const res = await fetch(`${API}${path}`, {
-    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
     ...opts,
+    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -517,10 +699,49 @@ async function apiJson(path, opts = {}) {
   return data;
 }
 
-// Adjunta el token guardado en la sesión a las peticiones autenticadas.
 async function authHeaders() {
   const session = await sget("session");
   return session?.token ? { Authorization: `Bearer ${session.token}` } : {};
+}
+
+async function markChapterRead(mangaId, chapterId) {
+  const headers = await authHeaders();
+  if (!headers.Authorization) return;
+  try {
+    await apiJson("/progreso", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ mangaId, chapterId }),
+    });
+  } catch (e) {
+    console.warn("No se pudo marcar el capítulo como leído:", e);
+  }
+}
+
+async function getReadChapters(mangaId) {
+  const headers = await authHeaders();
+  if (!headers.Authorization) return [];
+  try {
+    return await apiJson(`/progreso/${encodeURIComponent(mangaId)}`, { headers });
+  } catch (e) {
+    return [];
+  }
+}
+
+async function markChaptersBatch(mangaId, chapterIds, leido = true) {
+  const headers = await authHeaders();
+  if (!headers.Authorization) return false;
+  try {
+    await apiJson("/progreso/lote", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ mangaId, chapterIds, leido }),
+    });
+    return true;
+  } catch (e) {
+    console.warn("No se pudo actualizar el lote de capítulos:", e);
+    return false;
+  }
 }
 
 function AuthProvider({ children }) {
@@ -531,13 +752,26 @@ function AuthProvider({ children }) {
   useEffect(() => {
     (async () => {
       const session = await sget("session");
-      if (session?.token && session?.user) { setUser(session.user); setToken(session.token); }
+      if (session?.token && session?.user) {
+        setUser(session.user); setToken(session.token);
+        try {
+          const data = await apiJson("/auth/me", { headers: { Authorization: `Bearer ${session.token}` } });
+          const freshUser = {
+            ...data.usuario,
+            email: data.usuario.correo,
+            username: data.usuario.username || data.usuario.correo.split("@")[0],
+          };
+          if (JSON.stringify(freshUser) !== JSON.stringify(session.user)) {
+            setUser(freshUser);
+            await sset("session", { token: session.token, user: freshUser });
+          }
+        } catch {
+        }
+      }
       setReady(true);
     })();
   }, []);
 
-  // Pide un código de 6 dígitos al correo. Sirve tanto para registro como
-  // para login: si el correo no existe, el backend crea la cuenta.
   const requestCode = async (correo) => {
     correo = correo.trim().toLowerCase();
     return await apiJson("/auth/solicitar-codigo", {
@@ -546,7 +780,6 @@ function AuthProvider({ children }) {
     });
   };
 
-  // Verifica el código y guarda el token de sesión (JWT) devuelto por el backend.
   const verifyCode = async (correo, codigo) => {
     correo = correo.trim().toLowerCase();
     const data = await apiJson("/auth/verificar-codigo", {
@@ -565,8 +798,23 @@ function AuthProvider({ children }) {
 
   const logout = async () => { await sset("session", null); setUser(null); setToken(null); };
 
-  // NOTA: el backend actual (auth.js) no tiene todavía la ruta PATCH
-  // /auth/profile. Esta función queda lista para cuando se agregue.
+  const refreshUser = async () => {
+    if (!token) return null;
+    try {
+      const data = await apiJson("/auth/me", { headers: { Authorization: `Bearer ${token}` } });
+      const freshUser = {
+        ...data.usuario,
+        email: data.usuario.correo,
+        username: data.usuario.username || data.usuario.correo.split("@")[0],
+      };
+      setUser(freshUser);
+      await sset("session", { token, user: freshUser });
+      return freshUser;
+    } catch {
+      return null;
+    }
+  };
+
   const updateProfile = async (patch) => {
     if (!user) return;
     const headers = { ...(await authHeaders()) };
@@ -581,15 +829,12 @@ function AuthProvider({ children }) {
   };
 
   return (
-    <AuthCtx.Provider value={{ user, token, ready, requestCode, verifyCode, logout, updateProfile }}>
+    <AuthCtx.Provider value={{ user, token, ready, requestCode, verifyCode, logout, updateProfile, refreshUser }}>
       {children}
     </AuthCtx.Provider>
   );
 }
 
-/* ============================================================
-   LIBRARY / HISTORY HOOKS
-   ============================================================ */
 const LIST_KEYS = ["favoritos", "leyendo", "completados", "pendientes", "pausados", "abandonados"];
 const EMPTY_LIB = { favoritos: [], leyendo: [], completados: [], pendientes: [], pausados: [], abandonados: [] };
 
@@ -609,7 +854,6 @@ function useLibrary(email) {
         abandonados: l.abandonados || [],
       });
     } catch {
-      // fallback local si el server no responde
       const l = await sget(`library:${email}`, true);
       if (l) setLib(l);
     }
@@ -618,7 +862,6 @@ function useLibrary(email) {
   useEffect(() => { refresh(); }, [refresh]);
 
   const setStatus = async (manga, listKey) => {
-    // actualización optimista
     const next = {
       favoritos: [...lib.favoritos],
       leyendo: [...lib.leyendo],
@@ -673,7 +916,7 @@ function useLibrary(email) {
   return { lib, setStatus, toggleFavorite, statusOf, isFav, refresh };
 }
 
-function useHistory(email) {
+function useHistory(email, auth) {
   const [history, setHistory] = useState([]);
   useEffect(() => {
     if (!email) { setHistory([]); return; }
@@ -682,18 +925,35 @@ function useHistory(email) {
 
   const record = async (entry) => {
     if (!email) return;
+    const isNewChapter = !history.some(h => h.mangaId === entry.mangaId && h.chapterId === entry.chapterId);
     const next = [entry, ...history.filter(h => !(h.mangaId === entry.mangaId && h.chapterId === entry.chapterId))].slice(0, 500);
     setHistory(next);
     await sset(`history:${email}`, next, true);
+
+    if (isNewChapter && auth?.user && auth?.updateProfile) {
+      try {
+        const prevXp = auth.user.xp ?? 0;
+        const newXp = prevXp + XP_PER_CHAPTER;
+        const newLevel = levelFromXp(newXp);
+        const unlocked = titlesUnlocked(newXp, next.length);
+        const prevTitles = Array.isArray(auth.user.titles) ? auth.user.titles : [];
+        const mergedTitles = [...new Set([...prevTitles, ...unlocked])];
+        await auth.updateProfile({
+          xp: newXp,
+          level: newLevel,
+          titles: mergedTitles,
+          activeTitle: auth.user.activeTitle || mergedTitles[mergedTitles.length - 1] || null,
+        });
+      } catch (e) {
+        console.warn("No se pudo guardar XP en la cuenta:", e);
+      }
+    }
   };
   const progressForManga = (mangaId) => history.find(h => h.mangaId === mangaId);
 
   return { history, record, progressForManga };
 }
 
-/* ============================================================
-   MANHWAWEB API HELPERS
-   ============================================================ */
 function mangaFromApi(m) {
   return {
     id: m.id,
@@ -721,7 +981,14 @@ function mangaFromApi(m) {
 
 async function mwFetch(path) {
   const res = await fetch(`${API}${path}`);
-  if (!res.ok) throw new Error(`ManhwaWeb error ${res.status}`);
+  if (!res.ok) {
+    let detail = "";
+    try { const body = await res.json(); detail = body?.detail || body?.error || ""; } catch {}
+    const err = new Error(detail ? `ManhwaWeb error ${res.status}: ${detail}` : `ManhwaWeb error ${res.status}`);
+    err.status = res.status;
+    err.detail = detail;
+    throw err;
+  }
   return await res.json();
 }
 
@@ -762,55 +1029,75 @@ async function searchManga(params = {}) {
   return { list: (data.data || []).map(mangaFromApi), total: data.total || 0 };
 }
 
-async function getMangaById(id) {
+const mangaDetailCache = new Map();
+
+async function getMangaById(id, forceRefresh = false) {
+  const cacheKey = String(id);
+
+  if (!forceRefresh && mangaDetailCache.has(cacheKey)) {
+    return mangaDetailCache.get(cacheKey);
+  }
+
   const data = await mwFetch(`/manhwa/${encodeURIComponent(id)}`);
-  return mangaFromApi(data);
+  const manga = mangaFromApi(data);
+
+  mangaDetailCache.set(cacheKey, manga);
+
+  return manga;
 }
 
-// ============================================================
-// CACHÉ DE CAPÍTULOS
-// ============================================================
-// Se mantiene mientras la aplicación esté abierta.
-// Al volver desde el lector a la página del manhwa, los capítulos
-// se muestran desde memoria sin volver a consultar el backend.
-// No guarda las páginas/imágenes del lector.
-// ============================================================
 const chaptersCache = new Map();
 
 async function getChapters(mangaId, forceRefresh = false) {
   const cacheKey = String(mangaId);
 
-  // Si ya fueron cargados y no se pidió una actualización manual,
-  // devolvemos directamente los capítulos guardados en memoria.
   if (!forceRefresh && chaptersCache.has(cacheKey)) {
     return chaptersCache.get(cacheKey);
   }
 
   const data = await getMangaById(mangaId);
 
-  const chapters = (data.capitulos || []).map(c => ({
-    id: c.id,
-    chapter: c.chapter,
-    title: c.title || "",
-    lang: c.lang || "es",
-    pages: c.pages || 0,
-    publishAt: c.publishAt || null,
-    readableAt: c.readableAt || null,
-    group: c.group || "—",
-    link: c.link || null,
-  }));
+  const seen = new Map();
+  const chapters = (data.capitulos || []).map((c, i) => {
+    const num = c.chapter ?? i;
+    let cid = c.id != null ? String(c.id) : "";
+    const broken = !cid || cid.includes("{") || /mangaId/i.test(cid) || /chapter\.chapter/i.test(cid);
+    if (broken) cid = `${mangaId}-${num}`;
+    const base = cid;
+    const n = (seen.get(base) || 0) + 1;
+    seen.set(base, n);
+    if (n > 1) cid = `${base}-${c.lang || "x"}-${n}`;
+    return {
+      id: cid,
+      chapter: num,
+      title: c.title || "",
+      lang: c.lang || "es",
+      pages: c.pages || 0,
+      publishAt: c.publishAt || null,
+      readableAt: c.readableAt || null,
+      group: c.group || "—",
+      link: c.link || null,
+    };
+  });
 
-  // Guardar en memoria para las siguientes visitas.
   chaptersCache.set(cacheKey, chapters);
 
   return chapters;
 }
 
 async function getChapterPages(chapterId) {
-  const sep = String(chapterId).lastIndexOf("-");
-  if (sep <= 0) throw new Error("ID de capítulo inválido");
-  const mangaId = chapterId.slice(0, sep);
-  const chapter = chapterId.slice(sep + 1);
+  const raw = String(chapterId);
+  const m = raw.match(/^(.*)-(\d+)(?:-[a-z]{2}-\d+)?$/i);
+  let mangaId, chapter;
+  if (m) {
+    mangaId = m[1];
+    chapter = m[2];
+  } else {
+    const sep = raw.lastIndexOf("-");
+    if (sep <= 0) throw new Error("ID de capítulo inválido");
+    mangaId = raw.slice(0, sep);
+    chapter = raw.slice(sep + 1).replace(/-[a-z]{2}-\d+$/i, "");
+  }
   return await mwFetch(`/manhwa/${encodeURIComponent(mangaId)}/chapter/${encodeURIComponent(chapter)}`);
 }
 
@@ -818,12 +1105,6 @@ async function getTags() {
   return [];
 }
 
-/* ============================================================
-   SMALL UI PRIMITIVES
-   ============================================================ */
-// <img> para portadas: src ya viene armada con COVERS, que apunta a nuestro
-// propio servidor (komiverso-server), así que la imagen se sirve directo
-// desde ahí sin necesitar proxies externos ni reintentos.
 function ProxyImg({ src, className, style, alt = "" }) {
   const [gaveUp, setGaveUp] = useState(false);
   useEffect(() => { setGaveUp(false); }, [src]);
@@ -900,9 +1181,6 @@ function Row({ title, icon, children, onSeeAll, seeAllLabel = "Ver todo" }) {
   );
 }
 
-/* ============================================================
-   AUTH MODALS (correo + código de 6 dígitos, sin contraseña)
-   ============================================================ */
 function AuthModals({ authModal, setAuthModal }) {
   const { requestCode, verifyCode } = useAuth();
   const [email, setEmail] = useState("");
@@ -963,9 +1241,6 @@ function AuthModals({ authModal, setAuthModal }) {
   );
 }
 
-/* ============================================================
-   HOME PAGE
-   ============================================================ */
 function HomePage({ nav, history, lib }) {
   const t = useT();
   const [trending, setTrending] = useState(null);
@@ -976,8 +1251,6 @@ function HomePage({ nav, history, lib }) {
 
   const [failed, setFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  // keepData=true (botón "Actualizar"): no borra lo que ya se ve en pantalla mientras
-  // llegan los datos nuevos, así no hay parpadeo de skeleton en cada recarga.
   const load = useCallback((keepData = false) => {
     if (!keepData) { setTrending(null); setLatest(null); setTopRated(null); setNewTitles(null); setManhwa(null); }
     setFailed(false); setRefreshing(true);
@@ -993,8 +1266,6 @@ function HomePage({ nav, history, lib }) {
       setRefreshing(false);
     });
   }, []);
-  // Se ejecuta una sola vez: como HomePage ya no se desmonta al cambiar de pestaña,
-  // este efecto de montaje no vuelve a dispararse al volver a "Inicio".
   useEffect(() => { load(); }, [load]);
 
   const continuing = history.history.slice(0, 15);
@@ -1004,7 +1275,7 @@ function HomePage({ nav, history, lib }) {
   if (failed && !trending && !latest) {
     return (
       <div className="p-8 text-center">
-        <p className="text-sm mb-3" style={{ color: "var(--muted)" }}>No se pudo conectar con MangaDex (el proxy CORS puede estar saturado o caído).</p>
+        <p className="text-sm mb-3" style={{ color: "var(--muted)" }}>No se pudo conectar con KomiVerso, por favor ten paciencia y vuelve a intentarlo :).</p>
         <Btn size="sm" variant="outline" onClick={load}>{t("retry")}</Btn>
       </div>
     );
@@ -1037,13 +1308,13 @@ function HomePage({ nav, history, lib }) {
         </Row>
       )}
 
-      <Row title={`🔥 ${t("trending")}`} icon={<TrendingUp size={17} />} onSeeAll={() => nav("search", { sort: "followedCount" })} seeAllLabel={t("seeAll")}>
+      <Row title={t("trending")} icon={<TrendingUp size={17} />} onSeeAll={() => nav("search", { sort: "followedCount" })} seeAllLabel={t("seeAll")}>
         {trending === null ? <Skeleton /> : trending.map((m, i) => <Cover key={m.id} manga={m} onClick={() => nav("manga", m.id)} showStatus revealDelay={i * 35} />)}
       </Row>
       <Row title={`🆕 ${t("recentlyUpdated")}`} icon={<Sparkles size={17} />} onSeeAll={() => nav("search", { sort: "latestUploadedChapter" })} seeAllLabel={t("seeAll")}>
         {latest === null ? <Skeleton /> : latest.map((m, i) => <Cover key={m.id} manga={m} onClick={() => nav("manga", m.id)} showStatus revealDelay={i * 35} />)}
       </Row>
-      <Row title={`⭐ ${t("topRated")}`} icon={<Star size={17} />} onSeeAll={() => nav("search", { sort: "rating" })} seeAllLabel={t("seeAll")}>
+      <Row title={t("topRated")} icon={<Star size={17} />} onSeeAll={() => nav("search", { sort: "rating" })} seeAllLabel={t("seeAll")}>
         {topRated === null ? <Skeleton /> : topRated.map((m, i) => <Cover key={m.id} manga={m} onClick={() => nav("manga", m.id)} showStatus revealDelay={i * 35} />)}
       </Row>
       <Row title={t("popularManhwa")} icon={<TrendingUp size={17} />} onSeeAll={() => nav("search", { origin: "ko" })} seeAllLabel={t("seeAll")}>
@@ -1056,9 +1327,6 @@ function HomePage({ nav, history, lib }) {
   );
 }
 
-/* ============================================================
-   SEARCH PAGE
-   ============================================================ */
 function SearchPage({ nav, initial }) {
   const [q, setQ] = useState(initial?.q || "");
   const [genres, setGenres] = useState([]);
@@ -1084,8 +1352,6 @@ function SearchPage({ nav, initial }) {
 
   useEffect(() => { run(); }, []);
   useEffect(() => { const t = setTimeout(run, 450); return () => clearTimeout(t); }, [q, genres, origin, status, demo, sort, lang]);
-  // Como SearchPage ya no se desmonta al cambiar de pestaña, cuando llega un
-  // "initial" nuevo (p. ej. desde "Ver todo" en Inicio) hay que aplicarlo a mano.
   useEffect(() => {
     if (!initial) return;
     if (initial.q !== undefined) setQ(initial.q);
@@ -1148,7 +1414,7 @@ function SearchPage({ nav, initial }) {
         <div className="grid grid-cols-3 gap-3">{[...Array(9)].map((_, i) => <div key={i} className="rounded-xl animate-pulse" style={{ aspectRatio: "2/3", background: "var(--surface2)" }} />)}</div>
       ) : results === "error" ? (
         <div className="text-center text-sm py-10" style={{ color: "var(--muted)" }}>
-          <p className="mb-3">No se pudo conectar con MangaDex ahora mismo (puede ser el proxy o tu conexión).</p>
+          <p className="mb-3">No se pudo conectar con KomiVerso, por favor ten paciencia y vuelve a intentarlo :).</p>
           <Btn size="sm" variant="outline" onClick={run}>Reintentar</Btn>
         </div>
       ) : results.length === 0 ? (
@@ -1162,17 +1428,21 @@ function SearchPage({ nav, initial }) {
   );
 }
 
-/* ============================================================
-   MANGA DETAIL PAGE
-   ============================================================ */
 function MangaPage({ id, nav, lib, auth, setAuthModal }) {
   const t = useT();
   const [manga, setManga] = useState(null);
   const [chapters, setChapters] = useState(null);
   const [tab, setTab] = useState("capitulos");
   const [chapLang, setChapLang] = useState("all");
+  const [chapOrder, setChapOrder] = useState("desc");
   const [showListMenu, setShowListMenu] = useState(false);
   const [related, setRelated] = useState(null);
+  const [readChapters, setReadChapters] = useState([]);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState([]);
+  const pressTimer = useRef(null);
+  const pressFired = useRef(false);
+  const pressStartPos = useRef(null);
 
   useEffect(() => {
     setManga(null);
@@ -1180,8 +1450,12 @@ function MangaPage({ id, nav, lib, auth, setAuthModal }) {
 
     getMangaById(id).then(setManga).catch(() => setManga(false));
 
-    // Si ya cargamos los capítulos de este manhwa,
-    // mostrarlos inmediatamente sin otra petición.
+    if (auth.user) {
+      getReadChapters(id).then(setReadChapters);
+    } else {
+      setReadChapters([]);
+    }
+
     const cached = chaptersCache.get(String(id));
 
     if (cached) {
@@ -1190,7 +1464,7 @@ function MangaPage({ id, nav, lib, auth, setAuthModal }) {
       setChapters(null);
       getChapters(id).then(setChapters).catch(() => setChapters([]));
     }
-  }, [id]);
+  }, [id, auth.user]);
 
   useEffect(() => {
     if (manga && manga.tags?.length) {
@@ -1229,6 +1503,16 @@ function MangaPage({ id, nav, lib, auth, setAuthModal }) {
     return chapters.filter(c => c.lang === chapLang);
   }, [chapters, chapLang]);
 
+  const sortedChapters = useMemo(() => {
+    const arr = [...filteredChapters];
+    arr.sort((a, b) => {
+      const na = parseFloat(a.chapter) || 0;
+      const nb = parseFloat(b.chapter) || 0;
+      return chapOrder === "desc" ? nb - na : na - nb;
+    });
+    return arr;
+  }, [filteredChapters, chapOrder]);
+
   if (manga === false) return <div className="p-6 text-center text-sm" style={{ color: "var(--muted)" }}>No se pudo cargar esta obra.</div>;
   if (!manga) return <div className="p-6 flex justify-center"><Loader className="animate-spin" /></div>;
 
@@ -1240,17 +1524,75 @@ function MangaPage({ id, nav, lib, auth, setAuthModal }) {
 
   const tabLabels = { capitulos: t("chapters"), similares: t("similar"), comentarios: t("comments") };
 
+  const toggleSelected = (chapterId) => {
+    setSelected(prev => prev.includes(chapterId) ? prev.filter(x => x !== chapterId) : [...prev, chapterId]);
+  };
+  const handlePressStart = (chapterId, e) => {
+    pressFired.current = false;
+    pressStartPos.current = e && e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+    pressTimer.current = setTimeout(() => {
+      pressFired.current = true;
+      requireAuth(() => { setSelectMode(true); setSelected([chapterId]); });
+    }, 500);
+  };
+  const clearPressTimer = () => { clearTimeout(pressTimer.current); };
+  const handlePressMove = (e) => {
+    const start = pressStartPos.current;
+    if (!start || !e.touches || !e.touches[0]) return;
+    const dx = Math.abs(e.touches[0].clientX - start.x);
+    const dy = Math.abs(e.touches[0].clientY - start.y);
+    if (dx > 10 || dy > 10) clearPressTimer();
+  };
+  const handleRowClick = (c) => {
+    if (pressFired.current) { pressFired.current = false; return; }
+    if (selectMode) { toggleSelected(c.id); return; }
+    nav("reader", { mangaId: id, chapterId: c.id, mangaTitle: manga.title, cover: manga.cover });
+  };
+  const salirDeSeleccion = () => { setSelectMode(false); setSelected([]); };
+  const seleccionarTodos = () => setSelected(sortedChapters.map(c => c.id));
+  const marcarSeleccionados = async (leido) => {
+    if (!selected.length) return;
+    const ok = await markChaptersBatch(id, selected, leido);
+    if (ok) {
+      setReadChapters(prev => leido
+        ? [...new Set([...prev, ...selected])]
+        : prev.filter(cid => !selected.includes(cid)));
+    }
+    salirDeSeleccion();
+  };
+
   return (
     <div className="pb-8 kv-page-enter">
-      <div className="relative h-40 sm:h-56" style={{ background: manga.cover ? undefined : "var(--surface2)" }}>
-        {manga.cover && <ProxyImg src={manga.coverLarge} className="w-full h-full object-cover" style={{ filter: "blur(2px) brightness(0.55)" }} />}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent, var(--bg))" }} />
-      </div>
-      <div className="px-4 -mt-16 flex gap-4">
-        <ProxyImg src={manga.cover} className="w-28 rounded-xl flex-shrink-0 shadow-lg" style={{ aspectRatio: "2/3", objectFit: "cover", border: "2px solid var(--surface)" }} />
-        <div className="flex-1 pt-16">
-          <h1 className="font-bold text-lg leading-tight">{manga.title}</h1>
-          <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{manga.author} {manga.artist !== manga.author && `· ${manga.artist}`}</p>
+      <div className="relative overflow-hidden" style={{ background: "var(--surface2)" }}>
+        {manga.cover && (
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            <ProxyImg
+              src={manga.coverLarge || manga.cover}
+              className="w-full h-full"
+              style={{ objectFit: "cover", filter: "blur(18px) brightness(0.4)", transform: "scale(1.12)" }}
+            />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.15), var(--bg))" }} />
+          </div>
+        )}
+        <div className="relative px-4 pt-5 pb-4 flex gap-4 items-end">
+          <div
+            className="w-28 sm:w-32 flex-shrink-0 rounded-xl overflow-hidden shadow-lg"
+            style={{ aspectRatio: "2/3", background: "var(--surface)", border: "2px solid var(--border)" }}
+          >
+            {manga.cover ? (
+              <ProxyImg
+                src={manga.coverLarge || manga.cover}
+                className="w-full h-full"
+                style={{ objectFit: "contain", objectPosition: "center" }}
+              />
+            ) : null}
+          </div>
+          <div className="flex-1 min-w-0 pb-1">
+            <h1 className="font-bold text-lg leading-tight">{manga.title}</h1>
+            <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+              {manga.author}{manga.artist !== manga.author ? ` · ${manga.artist}` : ""}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -1307,24 +1649,59 @@ function MangaPage({ id, nav, lib, auth, setAuthModal }) {
                   Other ({langCounts.other})
                 </button>
               )}
+              <button onClick={() => setChapOrder(o => o === "desc" ? "asc" : "desc")} className="text-xs px-2.5 py-1.5 rounded-full flex-shrink-0 font-medium flex items-center gap-1" style={{ background: "var(--surface2)", color: "var(--text)" }}>
+                <ArrowUpDown size={12} /> {chapOrder === "desc" ? "Mayor a menor" : "Menor a mayor"}
+              </button>
             </div>
           )}
           {chapters === null ? <div className="flex justify-center py-8"><Loader className="animate-spin" size={20} /></div> :
             chapters.length === 0 ? <p className="text-sm py-6 text-center" style={{ color: "var(--muted)" }}>{t("noChapters")}</p> :
-              filteredChapters.length === 0 ? <p className="text-sm py-6 text-center" style={{ color: "var(--muted)" }}>{t("noChapters")}</p> :
+              sortedChapters.length === 0 ? <p className="text-sm py-6 text-center" style={{ color: "var(--muted)" }}>{t("noChapters")}</p> :
               <table className="w-full text-sm">
-                <thead><tr style={{ color: "var(--muted)" }} className="text-xs text-left"><th className="py-2 font-medium">{t("chapter")}</th><th className="font-medium">{t("language")}</th><th className="font-medium">{t("date")}</th><th className="font-medium text-right">{t("status")}</th></tr></thead>
+                <thead><tr style={{ color: "var(--muted)" }} className="text-xs text-left">{selectMode && <th className="w-8"></th>}<th className="py-2 font-medium">{t("chapter")}</th><th className="font-medium">{t("language")}</th><th className="font-medium">{t("date")}</th><th className="font-medium text-right">{t("status")}</th></tr></thead>
                 <tbody>
-                  {filteredChapters.map(c => (
-                    <tr key={c.id} onClick={() => nav("reader", { mangaId: id, chapterId: c.id, mangaTitle: manga.title, cover: manga.cover })} className="cursor-pointer" style={{ borderTop: "1px solid var(--border)" }}>
-                      <td className="py-2.5">Cap. {c.chapter ?? "—"}{c.title ? ` · ${c.title.slice(0, 24)}` : ""}</td>
-                      <td className="uppercase text-xs" style={{ color: "var(--muted)" }}>{c.lang}</td>
-                      <td className="text-xs" style={{ color: "var(--muted)" }}>{fmtDate(c.readableAt)}</td>
-                      <td className="text-right">🟢</td>
-                    </tr>
-                  ))}
+                  {sortedChapters.map(c => {
+                    const leido = readChapters.includes(c.id);
+                    const marcado = selected.includes(c.id);
+                    return (
+                      <tr
+                        key={c.id}
+                        onClick={() => handleRowClick(c)}
+                        onMouseDown={() => handlePressStart(c.id)}
+                        onMouseUp={clearPressTimer}
+                        onMouseLeave={clearPressTimer}
+                        onTouchStart={(e) => handlePressStart(c.id, e)}
+                        onTouchMove={handlePressMove}
+                        onTouchEnd={clearPressTimer}
+                        className="cursor-pointer select-none"
+                        style={{ borderTop: "1px solid var(--border)", background: marcado ? "var(--surface2)" : "transparent" }}
+                      >
+                        {selectMode && (
+                          <td className="py-2.5">
+                            <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ border: marcado ? "none" : "1px solid var(--muted)", background: marcado ? "var(--accent)" : "transparent" }}>
+                              {marcado && <Check size={11} color="#fff" strokeWidth={3} />}
+                            </div>
+                          </td>
+                        )}
+                        <td className="py-2.5" style={{ color: leido ? "var(--muted)" : "var(--text)" }}>Cap. {c.chapter ?? "—"}{c.title ? ` · ${c.title.slice(0, 24)}` : ""}</td>
+                        <td className="uppercase text-xs" style={{ color: "var(--muted)" }}>{c.lang}</td>
+                        <td className="text-xs" style={{ color: "var(--muted)" }}>{fmtDate(c.readableAt)}</td>
+                        <td className="text-right">{leido ? "✅" : "🟢"}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>}
+        </div>
+      )}
+
+      {selectMode && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2 px-3 py-3 overflow-x-auto" style={{ background: "var(--surface)", borderTop: "1px solid var(--border)", paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
+          <span className="text-xs flex-shrink-0" style={{ color: "var(--muted)" }}>{selected.length} sel.</span>
+          <Btn size="sm" variant="outline" onClick={seleccionarTodos} className="flex-shrink-0">Todos</Btn>
+          <Btn size="sm" variant="solid" onClick={() => marcarSeleccionados(true)} className="flex-shrink-0"><Check size={13} /> Marcar leídos</Btn>
+          <Btn size="sm" variant="outline" onClick={() => marcarSeleccionados(false)} className="flex-shrink-0">No leídos</Btn>
+          <Btn size="sm" variant="outline" onClick={salirDeSeleccion} className="flex-shrink-0 ml-auto"><X size={13} /></Btn>
         </div>
       )}
 
@@ -1343,13 +1720,6 @@ function MangaPage({ id, nav, lib, auth, setAuthModal }) {
 }
 function fmtDate(iso) { if (!iso) return "—"; const d = new Date(iso); const today = new Date(); const diffDays = Math.floor((today - d) / 86400000); if (diffDays === 0) return "Hoy"; if (diffDays === 1) return "Ayer"; return d.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: d.getFullYear() !== today.getFullYear() ? "numeric" : undefined }); }
 
-/* ============================================================
-   COMMENTS SECTION (reseñas / comentarios por capítulo, likes, spoilers)
-   ============================================================ */
-/* ============================================================
-   COMMENTS SECTION (comentarios con respuestas, borrado y spoilers)
-   Habla directo con /api/comentarios (backend real, Prisma + auth JWT).
-   ============================================================ */
 function CommentsSection({ mangaId, chapterId, auth, setAuthModal }) {
   const [comments, setComments] = useState(null);
   const [text, setText] = useState(""); const [spoiler, setSpoiler] = useState(false);
@@ -1470,56 +1840,171 @@ function CommentsSection({ mangaId, chapterId, auth, setAuthModal }) {
   );
 }
 
-/* ============================================================
-   READER
-   ============================================================ */
+function useAdBlockDetected(depKey) {
+  const [blocked, setBlocked] = useState(null);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    setBlocked(null);
+    const bait = document.createElement("div");
+    bait.className = "adsbox ad-banner ads eas6a97888e2 pub_300x250 textads banner-ads";
+    bait.style.cssText = "position:absolute;left:-9999px;top:-9999px;width:2px;height:2px;";
+    document.body.appendChild(bait);
+    const cleanup = () => { if (bait.parentNode) bait.parentNode.removeChild(bait); };
+    const timer = setTimeout(async () => {
+      const hiddenByCss = !document.body.contains(bait) || bait.offsetParent === null || bait.clientHeight === 0 || getComputedStyle(bait).display === "none";
+      cleanup();
+      let scriptBlocked = false;
+      try { await fetch(EXOCLICK_SCRIPT_SRC, { mode: "no-cors", cache: "no-store" }); }
+      catch { scriptBlocked = true; }
+      if (!cancelled) setBlocked(hiddenByCss || scriptBlocked);
+    }, 150);
+    return () => { cancelled = true; clearTimeout(timer); cleanup(); };
+  }, [depKey, tick]);
+  return [blocked, () => setTick((t) => t + 1)];
+}
+
+function AdBlockNotice({ onRetry, onBack }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ background: "var(--bg)", color: "var(--text)" }}>
+      <div className="max-w-sm text-center">
+        <div className="text-4xl mb-3">🛡️</div>
+        <h2 className="font-bold text-lg mb-2">Desactiva tu bloqueador de anuncios</h2>
+        <p className="text-sm mb-6" style={{ color: "var(--muted)" }}>
+          Los anuncios nos ayudan a mantener KōmiVerso gratis. Desactiva tu adblock para este sitio (o añádelo a la lista de excepciones) y vuelve a intentarlo. También puedes suscribirte para leer sin anuncios.
+        </p>
+        <div className="flex flex-col gap-2">
+          <Btn onClick={onRetry} className="w-full">Ya lo desactivé, reintentar</Btn>
+          <Btn variant="outline" onClick={onBack} className="w-full">Volver</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChapterAdGate({ onDone }) {
+  const [seconds, setSeconds] = useState(AD_MIN_SECONDS);
+
+  useEffect(() => {
+    const id = setInterval(() => setSeconds((s) => (s <= 1 ? 0 : s - 1)), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 p-6" style={{ background: "var(--bg)", color: "var(--text)" }}>
+      <span className="text-[11px] uppercase tracking-wide" style={{ color: "var(--muted)" }}>Publicidad</span>
+      <div className="flex items-center justify-center rounded-lg" style={{ width: 300, height: 250, background: "rgba(255,255,255,0.04)" }}>
+        {ADSENSE_CONFIGURADO ? (
+          <iframe title="ad" srcDoc={buildAdHtml()} sandbox="allow-scripts allow-same-origin" style={{ width: 300, height: 250, border: 0 }} />
+        ) : (
+          <p className="text-xs text-center px-3" style={{ color: "var(--muted)" }}>(Aquí se mostrará un anuncio real en cuanto conectes ExoClick y/o Adsterra, arriba en App.jsx)</p>
+        )}
+      </div>
+      <Btn disabled={seconds > 0} onClick={onDone} className="w-56">{seconds > 0 ? `Continuar (${seconds})` : "Continuar"}</Btn>
+    </div>
+  );
+}
+
+function paginateNovel(paragraphs, budget) {
+  const out = [];
+  let cur = [];
+  let size = 0;
+  for (const p of paragraphs) {
+    const len = p.length + 40;
+    if (cur.length && size + len > budget) { out.push(cur); cur = []; size = 0; }
+    cur.push(p);
+    size += len;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+
+function NovelText({ paragraphs, fontPx, serif, narrow, color }) {
+  return (
+    <article className="mx-auto px-5 py-6" style={{ maxWidth: narrow ? "44rem" : "100%", color, fontSize: fontPx, lineHeight: 1.85, fontFamily: serif ? "Georgia, 'Times New Roman', serif" : "inherit", overflowWrap: "anywhere" }}>
+      {paragraphs.map((p, i) => <p key={i} style={{ marginBottom: "1em" }}>{p}</p>)}
+    </article>
+  );
+}
+
 function ReaderPage({ target, nav, history, auth, goBack }) {
   const { mangaId, chapterId, mangaTitle, cover } = target;
   const { readerPrefs } = useTheme();
   const [pages, setPages] = useState(null);
+  const [pageError, setPageError] = useState("");
   const [chapters, setChapters] = useState(null);
-  const [mode, setMode] = useState(readerPrefs?.mode || "vertical"); // vertical | paged
-  const [direction, setDirection] = useState(readerPrefs?.direction || "ltr"); // ltr | rtl
+  const [mode, setMode] = useState(readerPrefs?.mode || "vertical");
+  const [direction, setDirection] = useState(readerPrefs?.direction || "ltr");
   const [page, setPage] = useState(0);
-  const [fit, setFit] = useState(readerPrefs?.fit || "width"); // width | height
+  const [fit, setFit] = useState(readerPrefs?.fit || "width");
   const [zoom, setZoom] = useState(1);
   const [dark, setDark] = useState(readerPrefs?.dark !== undefined ? readerPrefs.dark : true);
   const [sepia, setSepia] = useState(readerPrefs?.sepia || false);
   const [hideUI, setHideUI] = useState(false);
-  const [quality, setQuality] = useState(readerPrefs?.quality || "full"); // full | saver
+  const [quality, setQuality] = useState(readerPrefs?.quality || "full");
   const [fullscreen, setFullscreen] = useState(false);
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(readerPrefs?.scrollSpeed || 30);
   const [percent, setPercent] = useState(0);
   const [bookmarks, setBookmarks] = useState([]);
   const [showComments, setShowComments] = useState(false);
+  const [serif, setSerif] = useState(true);
   const scrollRef = useRef(null);
   const autoScrollTimer = useRef(null);
+  const markedReadRef = useRef(false);
+  const [adBlocked, retryAdCheck] = useAdBlockDetected(chapterId);
+  const [adGatePassed, setAdGatePassed] = useState(false);
+  const showAds = !auth?.user || auth.user.plan !== "fan";
 
   useEffect(() => {
-    setPages(null); setPage(0); setPercent(0);
-    getChapterPages(chapterId).then(setPages).catch(() => setPages(false));
-    getChapters(mangaId).then(setChapters).catch(() => setChapters([]));
-    sget(`bookmarks:${mangaId}:${chapterId}`).then(b => setBookmarks(b || []));
-  }, [chapterId]);
+    let active = true;
+    setPages(null); setPage(0); setPercent(0); setPageError("");
+    markedReadRef.current = false;
+    if (!showAds) {
+      setAdGatePassed(true);
+    } else {
+      setAdGatePassed(false);
+      (async () => {
+        const key = "ad:chapterOpens";
+        let n = Number(await sget(key)) || 0;
+        n += 1;
+        await sset(key, n);
+        const needAd = n % AD_EVERY_N_CHAPTERS === 0;
+        if (active) setAdGatePassed(!needAd);
+      })();
+    }
+    getChapterPages(chapterId).then(p => { if (active) setPages(p); }).catch(err => { if (active) { setPages(false); setPageError(err?.detail || err?.message || ""); } });
+    getChapters(mangaId).then(c => { if (active) setChapters(c); }).catch(() => { if (active) setChapters([]); });
+    sget(`bookmarks:${mangaId}:${chapterId}`).then(b => { if (active) setBookmarks(b || []); });
+    return () => { active = false; };
+  }, [chapterId, mangaId, showAds]);
 
-  const imgs = pages ? (quality === "full" ? pages.full : pages.saver) : [];
+  const isNovel = !!pages && pages.type === "novel";
+  const fontPx = Math.round(18 * zoom);
+  const novelPages = useMemo(
+    () => (isNovel ? paginateNovel(pages.paragraphs || [], Math.round(1600 / (zoom * zoom))) : []),
+    [isNovel, pages, zoom]
+  );
+  const imgs = isNovel ? novelPages : pages ? (quality === "full" ? pages.full : pages.saver) || [] : [];
   const chapterIdx = chapters ? chapters.findIndex(c => c.id === chapterId) : -1;
   const currentChapter = chapters && chapterIdx >= 0 ? chapters[chapterIdx] : null;
-  const nextChapter = chapters && chapterIdx > 0 ? chapters[chapterIdx - 1] : null; // desc order: idx-1 is newer... careful
+  const nextChapter = chapters && chapterIdx > 0 ? chapters[chapterIdx - 1] : null;
   const prevChapter = chapters && chapterIdx >= 0 && chapterIdx < chapters.length - 1 ? chapters[chapterIdx + 1] : null;
 
-  // preload next images
   useEffect(() => {
-    if (!imgs.length) return;
+    if (!imgs.length || isNovel) return;
     [page + 1, page + 2].forEach(i => { if (imgs[i]) { const im = new Image(); im.src = imgs[i]; } });
   }, [page, imgs]);
 
-  // save progress
   const saveProgress = useCallback((pct, pg) => {
     setPercent(pct);
     if (!auth.user) return;
     history.record({ mangaId, chapterId, mangaTitle, cover, chapterNum: currentChapter?.chapter || "?", page: pg, percent: Math.round(pct), timestamp: Date.now() });
+
+    if (pct >= 95 && !markedReadRef.current) {
+      markedReadRef.current = true;
+      markChapterRead(mangaId, chapterId);
+    }
   }, [auth.user, mangaId, chapterId, mangaTitle, cover, currentChapter]);
 
   useEffect(() => {
@@ -1532,7 +2017,6 @@ function ReaderPage({ target, nav, history, auth, goBack }) {
     saveProgress(pct, Math.round((pct / 100) * imgs.length));
   };
 
-  // autoscroll
   useEffect(() => {
     if (autoScroll && mode === "vertical" && scrollRef.current) {
       autoScrollTimer.current = setInterval(() => { if (scrollRef.current) scrollRef.current.scrollTop += 1; }, 110 - scrollSpeed);
@@ -1540,7 +2024,6 @@ function ReaderPage({ target, nav, history, auth, goBack }) {
     return () => clearInterval(autoScrollTimer.current);
   }, [autoScroll, scrollSpeed, mode]);
 
-  // keyboard shortcuts
   useEffect(() => {
     const onKey = (e) => {
       if (mode === "paged") {
@@ -1558,6 +2041,18 @@ function ReaderPage({ target, nav, history, auth, goBack }) {
 
   const goPage = (delta) => setPage(p => Math.min(Math.max(p + delta, 0), imgs.length - 1));
 
+  useEffect(() => {
+    if (imgs.length && page > imgs.length - 1) setPage(imgs.length - 1);
+  }, [imgs.length]);
+
+  const onPagedTap = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    if (x < r.width / 3) goPage(direction === "rtl" ? 1 : -1);
+    else if (x > (2 * r.width) / 3) goPage(direction === "rtl" ? -1 : 1);
+    else setHideUI(v => !v);
+  };
+
   const toggleBookmark = async () => {
     const has = bookmarks.includes(page);
     const next = has ? bookmarks.filter(b => b !== page) : [...bookmarks, page];
@@ -1565,9 +2060,19 @@ function ReaderPage({ target, nav, history, auth, goBack }) {
   };
 
   const readerStyle = dark ? { background: "#0a0a0a" } : sepia ? { background: "#F1E7D0" } : { background: "#fff" };
-  const filterStyle = sepia ? "sepia(0.4)" : "none";
+  const filterStyle = sepia && !isNovel ? "sepia(0.4)" : "none";
+  const novelFg = dark ? "#e5e5e5" : sepia ? "#3b2f1e" : "#1a1a1a";
+  const readerFg = dark ? "#fff" : "#1a1a1a";
+  const readerFgMuted = dark ? "#888" : "#666";
 
   const goToChapter = (ch) => { if (ch) nav("reader", { mangaId, chapterId: ch.id, mangaTitle, cover }); };
+
+  if (adBlocked) {
+    return <AdBlockNotice onRetry={retryAdCheck} onBack={() => (goBack ? goBack() : nav("manga", mangaId))} />;
+  }
+  if (showAds && !adGatePassed) {
+    return <ChapterAdGate onDone={() => setAdGatePassed(true)} />;
+  }
 
   return (
     <div className={`fixed inset-0 z-50 flex flex-col ${fullscreen ? "" : ""}`} style={readerStyle}>
@@ -1585,20 +2090,39 @@ function ReaderPage({ target, nav, history, auth, goBack }) {
       )}
 
       <div className="flex-1 overflow-hidden relative" onClick={() => hideUI && setHideUI(false)}>
-        {pages === null ? <div className="h-full flex items-center justify-center"><Loader className="animate-spin text-white" /></div> :
-          pages === false ? <div className="h-full flex items-center justify-center text-white text-sm">No se pudieron cargar las páginas.</div> :
+        {pages === null ? <div className="h-full flex items-center justify-center"><Loader className="animate-spin" style={{ color: readerFg }} /></div> :
+          pages === false ? (
+            <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center text-sm" style={{ color: readerFg }}>
+              <p>No se pudieron cargar las páginas.</p>
+              {pageError && <p className="text-xs opacity-70">{pageError}</p>}
+              <Btn size="sm" variant="outline" onClick={() => { setPages(null); setPageError(""); getChapterPages(chapterId).then(setPages).catch(err => { setPages(false); setPageError(err?.detail || err?.message || ""); }); }}>Reintentar</Btn>
+            </div>
+          ) :
+          imgs.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center text-sm" style={{ color: readerFg }}>
+              <p>Este capítulo no tiene páginas disponibles.</p>
+              <Btn size="sm" variant="outline" onClick={() => { setPages(null); getChapterPages(chapterId).then(setPages).catch(() => setPages(false)); }}>Reintentar</Btn>
+            </div>
+          ) :
           mode === "vertical" ? (
             <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto" style={{ filter: filterStyle }}>
-              {imgs.map((src, i) => <img key={i} src={resolveAssetUrl(src)} loading={i < 3 ? "eager" : "lazy"} decoding="async" className="w-full block mx-auto" style={{ maxWidth: fit === "width" ? "100%" : "none", height: fit === "height" ? "100vh" : "auto", transform: `scale(${zoom})`, transformOrigin: "top center" }} />)}
-              <div className="text-center py-8 text-white text-sm">
-                {nextChapter ? <Btn onClick={() => goToChapter(nextChapter)}>Siguiente capítulo <ChevronRight size={15} /></Btn> : <p style={{ color: "#888" }}>Fin del capítulo</p>}
+              {isNovel
+                ? <NovelText paragraphs={pages.paragraphs} fontPx={fontPx} serif={serif} narrow={fit === "width"} color={novelFg} />
+                : imgs.map((src, i) => <img key={i} src={resolveAssetUrl(src)} loading={i < 3 ? "eager" : "lazy"} decoding="async" className="w-full block mx-auto" style={{ maxWidth: fit === "width" ? "100%" : "none", height: fit === "height" ? "100vh" : "auto", transform: `scale(${zoom})`, transformOrigin: "top center" }} />)}
+              <div className="text-center py-8 text-sm" style={{ color: readerFg }}>
+                {nextChapter ? <Btn onClick={() => goToChapter(nextChapter)}>Siguiente capítulo <ChevronRight size={15} /></Btn> : <p style={{ color: readerFgMuted }}>Fin del capítulo</p>}
               </div>
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center touch-pan-x select-none" style={{ filter: filterStyle }}
-              onClick={(e) => { const w = e.currentTarget.clientWidth; const x = e.nativeEvent.offsetX; if (x < w / 3) goPage(direction === "rtl" ? 1 : -1); else if (x > (2 * w) / 3) goPage(direction === "rtl" ? -1 : 1); else setHideUI(v => !v); }}>
-              {imgs[page] && <img src={resolveAssetUrl(imgs[page])} className="max-h-full mx-auto" style={{ maxWidth: fit === "width" ? "100%" : "none", objectFit: "contain", transform: `scale(${zoom})` }} />}
-            </div>
+            isNovel ? (
+              <div key={page} className="h-full overflow-y-auto select-none" onClick={onPagedTap}>
+                <NovelText paragraphs={imgs[page] || []} fontPx={fontPx} serif={serif} narrow={fit === "width"} color={novelFg} />
+              </div>
+            ) : (
+              <div className="h-full flex items-center justify-center touch-pan-x select-none" style={{ filter: filterStyle }} onClick={onPagedTap}>
+                {imgs[page] && <img src={resolveAssetUrl(imgs[page])} className="max-h-full mx-auto" style={{ maxWidth: fit === "width" ? "100%" : "none", objectFit: "contain", transform: `scale(${zoom})` }} />}
+              </div>
+            )
           )}
       </div>
 
@@ -1622,13 +2146,15 @@ function ReaderPage({ target, nav, history, auth, goBack }) {
           <ReaderBtn active={mode === "vertical"} onClick={() => setMode("vertical")} icon={<ListIcon size={15} />} label="Vertical" />
           <ReaderBtn active={mode === "paged"} onClick={() => setMode("paged")} icon={<Grid size={15} />} label="Página" />
           <ReaderBtn active={direction === "rtl"} onClick={() => setDirection(d => d === "rtl" ? "ltr" : "rtl")} icon={<ArrowRightLeftIcon />} label={direction === "rtl" ? "Der→Izq" : "Izq→Der"} />
-          <ReaderBtn onClick={() => setZoom(z => Math.min(z + 0.2, 2.5))} icon={<ZoomIn size={15} />} label="Zoom+" />
-          <ReaderBtn onClick={() => setZoom(z => Math.max(z - 0.2, 0.5))} icon={<ZoomOut size={15} />} label="Zoom-" />
+          <ReaderBtn onClick={() => setZoom(z => Math.min(z + 0.2, 2.5))} icon={<ZoomIn size={15} />} label={isNovel ? "Texto+" : "Zoom+"} />
+          <ReaderBtn onClick={() => setZoom(z => Math.max(z - 0.2, 0.5))} icon={<ZoomOut size={15} />} label={isNovel ? "Texto-" : "Zoom-"} />
           <ReaderBtn onClick={() => setZoom(1)} icon={<RotateCcw size={15} />} label="Reset" />
-          <ReaderBtn active={fit === "width"} onClick={() => setFit(f => f === "width" ? "height" : "width")} icon={<Maximize size={15} />} label={fit === "width" ? "Ancho" : "Alto"} />
+          <ReaderBtn active={fit === "width"} onClick={() => setFit(f => f === "width" ? "height" : "width")} icon={<Maximize size={15} />} label={isNovel ? (fit === "width" ? "Columna" : "Ancho") : (fit === "width" ? "Ancho" : "Alto")} />
           <ReaderBtn active={dark} onClick={() => setDark(v => !v)} icon={<Moon size={15} />} label="Oscuro" />
           <ReaderBtn active={sepia} onClick={() => setSepia(v => !v)} icon={<Coffee size={15} />} label="Sepia" />
-          <ReaderBtn active={quality === "saver"} onClick={() => setQuality(q => q === "full" ? "saver" : "full")} icon={<Download size={15} />} label={quality === "full" ? "Alta cal." : "Ahorro"} />
+          {isNovel
+            ? <ReaderBtn active={serif} onClick={() => setSerif(v => !v)} icon={<Type size={15} />} label={serif ? "Serif" : "Sans"} />
+            : <ReaderBtn active={quality === "saver"} onClick={() => setQuality(q => q === "full" ? "saver" : "full")} icon={<Download size={15} />} label={quality === "full" ? "Alta cal." : "Ahorro"} />}
           <ReaderBtn active={autoScroll} onClick={() => setAutoScroll(v => !v)} icon={autoScroll ? <Pause size={15} /> : <Play size={15} />} label="Auto" />
           <ReaderBtn onClick={() => setFullscreen(v => !v)} icon={fullscreen ? <Minimize size={15} /> : <Maximize size={15} />} label="Pantalla" />
           <ReaderBtn onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })} icon={<ArrowUp size={15} />} label="Arriba" />
@@ -1664,11 +2190,9 @@ function ReaderBtn({ active, onClick, icon, label }) {
 }
 function ArrowRightLeftIcon() { return <span style={{ fontSize: 13 }}>⇄</span>; }
 
-/* ============================================================
-   LIBRARY PAGE
-   ============================================================ */
 function LibraryPage({ lib, history, nav, auth, setAuthModal }) {
   const [tab, setTab] = useState("favoritos");
+  const theme = useTheme();
   if (!auth.user) return (
     <div className="p-8 text-center">
       <Library size={36} className="mx-auto mb-3" style={{ color: "var(--muted)" }} />
@@ -1678,6 +2202,10 @@ function LibraryPage({ lib, history, nav, auth, setAuthModal }) {
   );
   const tabs = [["favoritos", "Favoritos"], ["leyendo", "En lectura"], ["completados", "Completados"], ["pendientes", "Pendientes"], ["pausados", "Pausados"], ["abandonados", "Abandonados"], ["historial", "Historial"]];
   const list = tab === "historial" ? null : lib.lib[tab];
+  const view = theme.libraryView || "grid";
+  const coverSize = theme.coverSize || "md";
+  const gridCols = coverSize === "sm" ? "grid-cols-4" : coverSize === "lg" ? "grid-cols-2" : "grid-cols-3";
+  const listCoverW = coverSize === "sm" ? "w-10 h-14" : coverSize === "lg" ? "w-16 h-22" : "w-12 h-16";
 
   return (
     <div className="pt-3 pb-8">
@@ -1700,18 +2228,27 @@ function LibraryPage({ lib, history, nav, auth, setAuthModal }) {
             </div>
           ))}
         </div>
+      ) : view === "list" ? (
+        <div className="px-4 space-y-2">
+          {list.length === 0 ? <p className="text-sm" style={{ color: "var(--muted)" }}>Lista vacía.</p> : list.map(m => (
+            <div key={m.id} onClick={() => nav("manga", m.id)} className="flex gap-3 items-center p-2 rounded-xl cursor-pointer" style={{ background: "var(--surface)" }}>
+              <ProxyImg src={m.cover} className={`${listCoverW} rounded-lg object-cover flex-shrink-0`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{m.title}</p>
+                {m.capituloActual != null && <p className="text-xs" style={{ color: "var(--muted)" }}>Cap. {m.capituloActual}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
-        <div className="px-4 grid grid-cols-3 gap-x-3 gap-y-4">
-          {list.length === 0 ? <p className="text-sm col-span-3" style={{ color: "var(--muted)" }}>Lista vacía.</p> : list.map(m => <Cover key={m.id} manga={m} onClick={() => nav("manga", m.id)} />)}
+        <div className={`px-4 grid ${gridCols} gap-x-3 gap-y-4`}>
+          {list.length === 0 ? <p className="text-sm col-span-full" style={{ color: "var(--muted)" }}>Lista vacía.</p> : list.map(m => <Cover key={m.id} manga={m} onClick={() => nav("manga", m.id)} />)}
         </div>
       )}
     </div>
   );
 }
 
-/* ============================================================
-   CALENDAR PAGE
-   ============================================================ */
 const WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 function CalendarPage({ nav, lib }) {
   const [byDay, setByDay] = useState(null);
@@ -1728,7 +2265,6 @@ function CalendarPage({ nav, lib }) {
       setByDay(grouped);
     }).catch(() => setByDay(prev => prev || {})).finally(() => setRefreshing(false));
   }, []);
-  // Al mantenerse montada la página, esto solo corre en la primera visita.
   useEffect(() => { load(); }, [load]);
 
   return (
@@ -1757,14 +2293,13 @@ function CalendarPage({ nav, lib }) {
   );
 }
 
-/* ============================================================
-   PROFILE PAGE
-   ============================================================ */
 function ProfilePage({ auth, lib, history, setAuthModal }) {
   const fileRef = useRef(null);
   const [bio, setBio] = useState(auth.user?.bio || "");
   const [username, setUsername] = useState(auth.user?.username || "");
   const [saved, setSaved] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   if (!auth.user) return (
     <div className="p-8 text-center">
@@ -1786,7 +2321,10 @@ function ProfilePage({ auth, lib, history, setAuthModal }) {
         const scale = Math.max(size / img.width, size / img.height);
         const w = img.width * scale, h = img.height * scale;
         ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
-        auth.updateProfile({ avatar: canvas.toDataURL("image/jpeg", 0.8) });
+        setUploadingAvatar(true);
+        auth.updateProfile({ avatar: canvas.toDataURL("image/jpeg", 0.8) })
+          .catch(err => alert("No se pudo actualizar la foto de perfil: " + (err.message || "error desconocido")))
+          .finally(() => setUploadingAvatar(false));
       };
       img.src = reader.result;
     };
@@ -1794,19 +2332,30 @@ function ProfilePage({ auth, lib, history, setAuthModal }) {
   };
 
   const chaptersRead = history.history.length;
-  const genreCounts = {}; history.history.forEach(() => {});
+  const xp = auth.user.xp ?? 0;
+  const prog = xpProgress(xp);
+  const level = auth.user.level ?? prog.level;
+  const rank = rankForLevel(level);
+  const userTitles = Array.isArray(auth.user.titles) ? auth.user.titles : [];
+  const activeTitle = auth.user.activeTitle || null;
   const stats = [
     ["Capítulos leídos", chaptersRead], ["Completados", lib.lib.completados.length],
-    ["Favoritos", lib.lib.favoritos.length], ["Horas estimadas", Math.round(chaptersRead * 0.15)],
+    ["Favoritos", lib.lib.favoritos.length], ["XP", xp],
   ];
-  const level = Math.min(50, Math.floor(chaptersRead / 10) + 1);
   const achievements = [
-    { done: chaptersRead >= 1, label: "Primer capítulo", icon: "🎉" },
-    { done: chaptersRead >= 50, label: "Lector constante", icon: "📚" },
-    { done: chaptersRead >= 200, label: "Devorador de historias", icon: "🔥" },
-    { done: lib.lib.completados.length >= 5, label: "Finalizador", icon: "🏁" },
-    { done: lib.lib.favoritos.length >= 10, label: "Coleccionista", icon: "❤️" },
+    { done: chaptersRead >= 1, label: "Primer capítulo", icon: "★" },
+    { done: chaptersRead >= 50, label: "Lector constante", icon: "·" },
+    { done: chaptersRead >= 200, label: "Devorador de historias", icon: "▲" },
+    { done: lib.lib.completados.length >= 5, label: "Finalizador", icon: "■" },
+    { done: lib.lib.favoritos.length >= 10, label: "Coleccionista", icon: "♥" },
   ];
+  const setActiveTitle = async (title) => {
+    try {
+      await auth.updateProfile({ activeTitle: title });
+    } catch (e) {
+      alert("No se pudo cambiar el título: " + (e.message || "error"));
+    }
+  };
 
   return (
     <div className="pt-3 pb-8 px-4">
@@ -1814,15 +2363,52 @@ function ProfilePage({ auth, lib, history, setAuthModal }) {
         <button onClick={() => fileRef.current?.click()} className="relative w-24 h-24 rounded-full overflow-hidden mb-3" style={{ background: "var(--surface2)" }}>
           {auth.user.avatar ? <img src={auth.user.avatar} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-3xl font-bold">{auth.user.username[0].toUpperCase()}</div>}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity" style={{ background: "rgba(0,0,0,0.4)" }}><Camera size={20} color="#fff" /></div>
+          {uploadingAvatar && <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold" style={{ background: "rgba(0,0,0,0.5)", color: "#fff" }}>Subiendo…</div>}
         </button>
         <input ref={fileRef} type="file" accept="image/*" onChange={onAvatar} className="hidden" />
         <h1 className="font-bold text-lg">{auth.user.username}</h1>
         <p className="text-xs" style={{ color: "var(--muted)" }}>{auth.user.email}</p>
-        <span className="text-xs mt-1 px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: "var(--surface2)" }}><Award size={12} /> Nivel de lector {level}</span>
+        {activeTitle && <p className="text-xs mt-0.5 font-medium" style={{ color: "var(--accent)" }}>{activeTitle}</p>}
+        <span className="text-xs mt-1 px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: "var(--surface2)" }}>
+          <Award size={12} /> {rank.icon} {rank.label} · Nv. {level}
+        </span>
+        <div className="w-full max-w-xs mt-2">
+          <div className="flex justify-between text-[10px] mb-0.5" style={{ color: "var(--muted)" }}>
+            <span>{prog.into} / {prog.need} XP</span>
+            <span>Nv. {level}{level < 50 ? ` → ${level + 1}` : " MAX"}</span>
+          </div>
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface2)" }}>
+            <div className="h-full rounded-full transition-all" style={{ width: `${prog.pct}%`, background: "var(--accent)" }} />
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-2 mb-5">
         {stats.map(([l, v]) => <div key={l} className="text-center p-2 rounded-xl" style={{ background: "var(--surface)" }}><p className="font-bold text-base">{v}</p><p className="text-[10px]" style={{ color: "var(--muted)" }}>{l}</p></div>)}
+      </div>
+
+      <div className="mb-5">
+        <p className="text-xs font-semibold mb-2 flex items-center gap-1.5"><Award size={14} /> Títulos</p>
+        {userTitles.length === 0 ? (
+          <p className="text-xs" style={{ color: "var(--muted)" }}>Lee capítulos para desbloquear títulos.</p>
+        ) : (
+          <div className="flex gap-2 flex-wrap">
+            {userTitles.map(t => (
+              <button
+                key={t}
+                onClick={() => setActiveTitle(activeTitle === t ? null : t)}
+                className="text-xs px-2.5 py-1.5 rounded-full font-medium"
+                style={{
+                  background: activeTitle === t ? "var(--accent)" : "var(--surface2)",
+                  color: activeTitle === t ? "#fff" : "var(--text)",
+                  border: activeTitle === t ? "none" : "1px solid var(--border)",
+                }}
+              >
+                {t}{activeTitle === t ? " ✓" : ""}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mb-5">
@@ -1837,7 +2423,18 @@ function ProfilePage({ auth, lib, history, setAuthModal }) {
         <input value={username} onChange={e => setUsername(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm mb-3 outline-none" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
         <p className="text-xs mb-1.5" style={{ color: "var(--muted)" }}>Biografía</p>
         <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-        <Btn size="sm" className="mt-2" onClick={async () => { await auth.updateProfile({ username, bio }); setSaved(true); setTimeout(() => setSaved(false), 1500); }}>{saved ? "Guardado ✓" : "Guardar cambios"}</Btn>
+        <Btn size="sm" className="mt-2" disabled={savingProfile} onClick={async () => {
+          setSavingProfile(true);
+          try {
+            await auth.updateProfile({ username, bio });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 1500);
+          } catch (err) {
+            alert("No se pudieron guardar los cambios: " + (err.message || "error desconocido"));
+          } finally {
+            setSavingProfile(false);
+          }
+        }}>{savingProfile ? "Guardando…" : saved ? "Guardado ✓" : "Guardar cambios"}</Btn>
       </div>
 
       <Btn variant="outline" className="w-full" onClick={auth.logout}><LogOut size={15} /> Cerrar sesión</Btn>
@@ -1845,9 +2442,6 @@ function ProfilePage({ auth, lib, history, setAuthModal }) {
   );
 }
 
-/* ============================================================
-   SETTINGS PAGE
-   ============================================================ */
 function SettingsPage() {
   const theme = useTheme();
   const { lang, setLang } = useLang();
@@ -1893,21 +2487,84 @@ function SettingsPage() {
   );
 }
 
-/* ============================================================
-   SIDE DRAWER MENU
-   ============================================================ */
+const WEB3FORMS_ACCESS_KEY = "TU_ACCESS_KEY_AQUI";
+
 function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
   const t = useT();
   const theme = useTheme();
   const { lang, setLang } = useLang();
   const [infoModal, setInfoModal] = useState(null);
   const [reportText, setReportText] = useState("");
-  // null | "explore" | "config" | "info" | "appearance" | "reader" | "language" | "notifications"
+  const [suggTitle, setSuggTitle] = useState("");
+  const [suggDesc, setSuggDesc] = useState("");
+  const [suggHelp, setSuggHelp] = useState("");
+  const [suggBusy, setSuggBusy] = useState(false);
+  const resetSuggestion = () => { setSuggTitle(""); setSuggDesc(""); setSuggHelp(""); };
+  const sendSuggestion = async () => {
+    if (!suggTitle.trim() || !suggDesc.trim() || !suggHelp.trim()) { alert(t("suggestionMissing")); return; }
+    setSuggBusy(true);
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_ACCESS_KEY,
+          subject: `Nueva sugerencia KōmiVerso: ${suggTitle.trim()}`,
+          from_name: "KōmiVerso - Sugerencias",
+          Título: suggTitle.trim(),
+          Descripción: suggDesc.trim(),
+          "Cómo ayudaría": suggHelp.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(t("suggestionSent"));
+        resetSuggestion();
+        setInfoModal(null);
+      } else {
+        alert(t("suggestionError"));
+      }
+    } catch {
+      alert(t("suggestionError"));
+    } finally {
+      setSuggBusy(false);
+    }
+  };
+  const [wallpaperLoading, setWallpaperLoading] = useState(false);
+  const wallpaperInputRef = useRef(null);
   const [view, setView] = useState(null);
 
   useEffect(() => {
     if (!open) setView(null);
   }, [open]);
+
+  const onPickWallpaper = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setWallpaperLoading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxSide = 1280;
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+        theme.setWallpaperUrl(dataUrl);
+        setWallpaperLoading(false);
+      };
+      img.onerror = () => setWallpaperLoading(false);
+      img.src = reader.result;
+    };
+    reader.onerror = () => setWallpaperLoading(false);
+    reader.readAsDataURL(file);
+  };
 
   const go = (page, arg) => {
     onClose();
@@ -1916,13 +2573,15 @@ function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
     if (page === "about") { setInfoModal("about"); return; }
     if (page === "contact") { setInfoModal("contact"); return; }
     if (page === "report") { setInfoModal("report"); return; }
+    if (page === "suggestion") { setInfoModal("suggestion"); return; }
     nav(page, arg);
   };
 
   const categories = [
-    { id: "explore", title: `📚 ${t("explore")}` },
-    { id: "config", title: `⚙️ ${t("settings")}` },
-    { id: "info", title: `ℹ️ ${t("information")}` },
+    { id: "explore", title: t("explore"), Icon: Compass },
+    { id: "personalization", title: "Personalización", Icon: Palette },
+    { id: "config", title: t("settings"), Icon: Settings },
+    { id: "info", title: t("information"), Icon: Info },
   ];
 
   const exploreItems = [
@@ -1934,9 +2593,12 @@ function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
     { label: t("genres"), action: () => go("search", {}) },
   ];
 
-  const configItems = [
+  const personalizationItems = [
     { id: "appearance", label: t("appearance") },
     { id: "reader", label: t("reader") },
+  ];
+
+  const configItems = [
     { id: "language", label: t("language") },
     { id: "notifications", label: t("notifications") },
   ];
@@ -1945,24 +2607,59 @@ function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
     { label: t("about"), action: () => go("about") },
     { label: t("contact"), action: () => go("contact") },
     { label: t("reportProblem"), action: () => go("report") },
+    { label: t("suggestion"), action: () => go("suggestion") },
   ];
 
   const titles = {
-    explore: `📚 ${t("explore")}`,
-    config: `⚙️ ${t("settings")}`,
-    info: `ℹ️ ${t("information")}`,
+    explore: t("explore"),
+    personalization: "Personalización",
+    config: t("settings"),
+    info: t("information"),
     appearance: t("appearance"),
     reader: t("reader"),
     language: t("language"),
     notifications: t("notifications"),
+    theme: "Temas",
+    font: "Fuentes",
+    wallpaper: "Fondo de pantalla",
+    accent: "Color de acento",
+    density: "Densidad de la interfaz",
+  };
+
+  const titleIcons = {
+    explore: Compass,
+    personalization: Palette,
+    config: Settings,
+    info: Info,
+    appearance: Palette,
+    reader: BookOpen,
+    language: Languages,
+    notifications: Bell,
+    theme: Moon,
+    font: Type,
+    wallpaper: ImageIcon,
+    accent: Wand2,
+    density: Sliders,
+    amoled: Layout,
+    libraryView: LayoutGrid,
+    tabOrder: Grid,
   };
 
   const parentOf = {
-    appearance: "config",
-    reader: "config",
+    appearance: "personalization",
+    reader: "personalization",
     language: "config",
     notifications: "config",
+    theme: "appearance",
+    font: "appearance",
+    wallpaper: "appearance",
+    accent: "appearance",
+    density: "appearance",
+    amoled: "appearance",
+    libraryView: "appearance",
+    tabOrder: "appearance",
     explore: null,
+    personalization: null,
     config: null,
     info: null,
   };
@@ -1998,14 +2695,15 @@ function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
     </button>
   );
 
-  const FullScreen = ({ title, onBack, children }) => (
+  const FullScreen = ({ title, onBack, children, icon: Icon }) => (
     <div className="fixed inset-0 z-[95] flex flex-col kv-page-enter" style={{ background: "var(--bg)", color: "var(--text)" }}>
       <div className="flex items-center gap-2 px-4 py-3 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)", background: "var(--bg)" }}>
         <button onClick={onBack} className="p-1 -ml-1" style={{ color: "var(--text)" }} aria-label="Volver">
           <ChevronLeft size={22} />
         </button>
-        <h1 className="font-bold text-lg flex-1">{title}</h1>
-        <button onClick={onClose} style={{ color: "var(--muted)" }}><X size={20} /></button>
+        {Icon ? <Icon size={20} style={{ color: "var(--accent)", flexShrink: 0 }} /> : null}
+        <h2 className="text-base font-bold flex-1">{title}</h2>
+        <button onClick={onClose} style={{ color: "var(--muted)" }} aria-label="Cerrar"><X size={20} /></button>
       </div>
       <div className="flex-1 overflow-y-auto px-4 pt-4 pb-10">{children}</div>
     </div>
@@ -2027,11 +2725,40 @@ function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
     </div>
   );
 
+  const SettingCard = ({ icon, label, description, value, onClick, preview, disabled, badge }) => (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full text-left px-4 py-3.5 rounded-xl flex items-center gap-3 transition-all active:scale-[0.98] mb-2"
+      style={{ background: "var(--surface)", border: "1px solid var(--border)", opacity: disabled ? 0.5 : 1 }}
+    >
+      {preview ? (
+        <div className="w-10 h-10 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+          {preview}
+        </div>
+      ) : icon ? (
+        <div className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: "var(--surface2)", color: "var(--accent)" }}>
+          {icon}
+        </div>
+      ) : null}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-semibold">{label}</span>
+          {badge && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--accent)", color: "#fff" }}>{badge}</span>}
+        </div>
+        {description && <p className="text-[11px] truncate" style={{ color: "var(--muted)" }}>{description}</p>}
+      </div>
+      <div className="text-right flex-shrink-0 flex items-center gap-1.5">
+        {value && <span className="text-xs font-medium" style={{ color: "var(--muted)" }}>{value}</span>}
+        <ChevronRight size={16} style={{ color: "var(--muted)" }} />
+      </div>
+    </button>
+  );
+
   if (!open && !infoModal) return null;
 
   return (
     <>
-      {/* Drawer: solo categorías */}
       {open && !view && (
         <div className="fixed inset-0 z-[90]" onClick={onClose}>
           <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.45)" }} />
@@ -2060,48 +2787,124 @@ function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
               </div>
             )}
             <div className="py-1">
-              {categories.map(cat => (
+              {categories.map(cat => {
+                const Ic = cat.Icon;
+                return (
                 <button
                   key={cat.id}
                   onClick={() => setView(cat.id)}
                   className="w-full flex items-center justify-between px-4 py-3.5 text-left"
                   style={{ borderBottom: "1px solid var(--border)" }}
                 >
-                  <span className="text-sm font-semibold">{cat.title}</span>
+                  <span className="flex items-center gap-3 text-sm font-semibold">
+                    {Ic ? <Ic size={20} style={{ color: "var(--accent)" }} /> : null}
+                    {cat.title}
+                  </span>
                   <ChevronRight size={18} style={{ color: "var(--muted)" }} />
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
       )}
 
-      {/* Explorar */}
       {open && view === "explore" && (
-        <FullScreen title={titles.explore} onBack={back}>
+        <FullScreen title={titles.explore} icon={titleIcons.explore} onBack={back}>
           <ListButtons items={exploreItems} />
         </FullScreen>
       )}
 
-      {/* Configuración (lista de subopciones) */}
+      {open && view === "personalization" && (
+        <FullScreen title={titles.personalization} icon={titleIcons.personalization} onBack={back}>
+          <ListButtons items={personalizationItems} />
+        </FullScreen>
+      )}
+
       {open && view === "config" && (
-        <FullScreen title={titles.config} onBack={back}>
+        <FullScreen title={titles.config} icon={titleIcons.config} onBack={back}>
           <ListButtons items={configItems} />
         </FullScreen>
       )}
 
-      {/* Información */}
       {open && view === "info" && (
-        <FullScreen title={titles.info} onBack={back}>
+        <FullScreen title={titles.info} icon={titleIcons.info} onBack={back}>
           <ListButtons items={infoItems} />
         </FullScreen>
       )}
 
-      {/* Apariencia */}
-      {open && view === "appearance" && (
-        <FullScreen title={titles.appearance} onBack={back}>
-          <p className="text-sm font-semibold mb-2 flex items-center gap-1.5"><Palette size={15} /> {t("theme")}</p>
-          <div className="grid grid-cols-3 gap-2 mb-6">
+      {open && view === "appearance" && (() => {
+        const currentPreset = PRESETS.find(p => p.id === theme.presetId);
+        const currentFont = FONTS.find(f => f.id === theme.fontId);
+        return (
+          <FullScreen title={titles.appearance} icon={titleIcons.appearance} onBack={back}>
+            <SettingCard
+              label="Temas"
+              description="Colores de la app: fondo, acento y superficies"
+              value={currentPreset?.label}
+              onClick={() => setView("theme")}
+              preview={currentPreset && (
+                <div className="w-full h-full grid grid-cols-2" style={{ background: currentPreset.bg }}>
+                  <span style={{ background: currentPreset.accent }} />
+                  <span style={{ background: currentPreset.surface2 }} />
+                </div>
+              )}
+            />
+            <SettingCard
+              icon={<Type size={18} />}
+              label="Fuentes"
+              description="Tipografía usada en toda la interfaz"
+              value={currentFont?.label}
+              onClick={() => setView("font")}
+            />
+            <SettingCard
+              icon={<ImageIcon size={18} />}
+              label="Fondo de pantalla"
+              description="Imagen de fondo con opacidad ajustable"
+              value={theme.wallpaperUrl ? "Activo" : "Ninguno"}
+              onClick={() => setView("wallpaper")}
+              preview={theme.wallpaperUrl && <img src={theme.wallpaperUrl} className="w-full h-full object-cover" />}
+            />
+            <SettingCard
+              icon={<Sliders size={18} />}
+              label="Color de acento"
+              description="Elige un color propio para botones y enlaces"
+              onClick={() => setView("accent")}
+            />
+            <SettingCard
+              icon={<Layout size={18} />}
+              label="Densidad de la interfaz"
+              description="Espaciado compacto, cómodo o amplio"
+              onClick={() => setView("density")}
+            />
+            <SettingCard
+              icon={<Moon size={18} />}
+              label="Modo AMOLED"
+              description="Negro puro para pantallas OLED, ahorra batería"
+              value={theme.amoled ? "Activado" : "Desactivado"}
+              onClick={() => setView("amoled")}
+            />
+            <SettingCard
+              icon={<LayoutGrid size={18} />}
+              label="Biblioteca: vista"
+              description="Cuadrícula o lista, tamaño de las portadas"
+              value={theme.libraryView === "list" ? "Lista" : "Cuadrícula"}
+              onClick={() => setView("libraryView")}
+            />
+            <SettingCard
+              icon={<Wand2 size={18} />}
+              label="Iconos y orden de la barra inferior"
+              description="Reordena o cambia qué pestañas se muestran"
+              onClick={() => setView("tabOrder")}
+            />
+          </FullScreen>
+        );
+      })()}
+
+      {open && view === "theme" && (
+        <FullScreen title="Temas" onBack={back}>
+          <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>Elige la paleta de colores de toda la app.</p>
+          <div className="grid grid-cols-3 gap-2">
             {PRESETS.map(p => (
               <button key={p.id} onClick={() => theme.setPresetId(p.id)} className="p-2 rounded-xl text-left" style={{ border: theme.presetId === p.id ? "2px solid var(--accent)" : "1px solid var(--border)", background: p.bg }}>
                 <div className="flex gap-1 mb-1.5">
@@ -2113,7 +2916,12 @@ function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
               </button>
             ))}
           </div>
-          <p className="text-sm font-semibold mb-2 flex items-center gap-1.5"><Type size={15} /> {t("readingFont")}</p>
+        </FullScreen>
+      )}
+
+      {open && view === "font" && (
+        <FullScreen title="Fuentes" onBack={back}>
+          <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>Tipografía usada en menús, títulos y textos de la app.</p>
           <div className="space-y-1.5">
             {FONTS.map(f => (
               <button key={f.id} onClick={() => theme.setFontId(f.id)} className="w-full text-left px-3 py-2.5 rounded-lg flex items-center justify-between" style={{ background: theme.fontId === f.id ? "var(--surface2)" : "var(--surface)", border: "1px solid var(--border)", fontFamily: f.family }}>
@@ -2125,9 +2933,179 @@ function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
         </FullScreen>
       )}
 
-      {/* Lector (preferencias generales) */}
+      {open && view === "wallpaper" && (
+        <FullScreen title="Fondo de pantalla" onBack={back}>
+          <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>Una imagen de fondo detrás de la interfaz, con opacidad ajustable para que no estorbe la lectura.</p>
+          <input ref={wallpaperInputRef} type="file" accept="image/*" onChange={onPickWallpaper} className="hidden" />
+          {theme.wallpaperUrl && (
+            <div className="rounded-xl overflow-hidden mb-3" style={{ border: "1px solid var(--border)", aspectRatio: "16/9" }}>
+              <img src={theme.wallpaperUrl} className="w-full h-full object-cover" />
+            </div>
+          )}
+          <div className="flex gap-2 mb-4">
+            <Btn onClick={() => wallpaperInputRef.current?.click()} disabled={wallpaperLoading} className="flex-1">
+              <ImageIcon size={15} /> {wallpaperLoading ? "Cargando…" : theme.wallpaperUrl ? "Cambiar imagen" : "Elegir de la galería"}
+            </Btn>
+            {theme.wallpaperUrl && (
+              <Btn variant="surface" onClick={() => theme.setWallpaperUrl(null)}><Trash2 size={15} /></Btn>
+            )}
+          </div>
+          {theme.wallpaperUrl && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs" style={{ color: "var(--muted)" }}>Opacidad del fondo</span>
+                <span className="text-xs" style={{ color: "var(--muted)" }}>{Math.round(theme.wallpaperOpacity * 100)}%</span>
+              </div>
+              <input type="range" min="5" max="50" value={Math.round(theme.wallpaperOpacity * 100)} onChange={e => theme.setWallpaperOpacity(+e.target.value / 100)} className="w-full" />
+            </div>
+          )}
+        </FullScreen>
+      )}
+
+      {open && view === "accent" && (
+        <FullScreen title="Color de acento" onBack={back}>
+          <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>Sustituye el color de acento del tema elegido por uno propio, para botones, enlaces y resaltados.</p>
+          <div className="flex items-center gap-3 mb-4">
+            <input
+              type="color"
+              value={theme.customAccent || theme.preset.accent}
+              onChange={e => theme.setCustomAccent?.(e.target.value)}
+              className="w-14 h-14 rounded-xl border-0 p-0 overflow-hidden"
+              style={{ background: "transparent" }}
+            />
+            <div className="text-sm">
+              <p className="font-medium">Elige un color</p>
+              <p className="text-[11px]" style={{ color: "var(--muted)" }}>Se aplica encima del tema actual</p>
+            </div>
+          </div>
+          {theme.customAccent && (
+            <Btn variant="outline" className="w-full" onClick={() => theme.setCustomAccent?.(null)}>Restablecer color del tema</Btn>
+          )}
+        </FullScreen>
+      )}
+
+      {open && view === "density" && (
+        <FullScreen title="Densidad de la interfaz" onBack={back}>
+          <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>Controla cuánto espacio hay entre elementos: más compacto cabe más en pantalla, más amplio es más fácil de tocar.</p>
+          <div className="space-y-2">
+            {[
+              { id: "compact", label: "Compacta" },
+              { id: "comfortable", label: "Cómoda" },
+              { id: "spacious", label: "Amplia" },
+            ].map(d => (
+              <button
+                key={d.id}
+                onClick={() => theme.setDensity?.(d.id)}
+                className="w-full text-left px-4 py-3.5 rounded-xl flex items-center justify-between"
+                style={{ background: (theme.density || "comfortable") === d.id ? "var(--surface2)" : "var(--surface)", border: (theme.density || "comfortable") === d.id ? "2px solid var(--accent)" : "1px solid var(--border)" }}
+              >
+                <span className="text-sm font-medium">{d.label}</span>
+                {(theme.density || "comfortable") === d.id && <CheckCircle size={16} style={{ color: "var(--accent)" }} />}
+              </button>
+            ))}
+          </div>
+        </FullScreen>
+      )}
+
+      {open && view === "amoled" && (
+        <FullScreen title="Modo AMOLED" onBack={back}>
+          <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>Fondo negro puro en temas oscuros. Ideal para OLED y ahorro de batería.</p>
+          <PrefRow label="Activar modo AMOLED">
+            <Toggle on={!!theme.amoled} onChange={(v) => theme.setAmoled?.(v)} />
+          </PrefRow>
+          {theme.preset?.mode === "light" && (
+            <p className="text-[11px] mt-2" style={{ color: "var(--muted)" }}>Solo aplica cuando el tema actual es oscuro.</p>
+          )}
+        </FullScreen>
+      )}
+
+      {open && view === "libraryView" && (
+        <FullScreen title="Biblioteca: vista" onBack={back}>
+          <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>Cómo se muestran las portadas en tu biblioteca.</p>
+          <p className="text-xs font-semibold mb-2">Disposición</p>
+          <div className="space-y-2 mb-4">
+            {[
+              { id: "grid", label: "Cuadrícula", icon: <LayoutGrid size={16} /> },
+              { id: "list", label: "Lista", icon: <ListIcon size={16} /> },
+            ].map(d => (
+              <button
+                key={d.id}
+                onClick={() => theme.setLibraryView?.(d.id)}
+                className="w-full text-left px-4 py-3.5 rounded-xl flex items-center justify-between"
+                style={{ background: (theme.libraryView || "grid") === d.id ? "var(--surface2)" : "var(--surface)", border: (theme.libraryView || "grid") === d.id ? "2px solid var(--accent)" : "1px solid var(--border)" }}
+              >
+                <span className="text-sm font-medium flex items-center gap-2">{d.icon} {d.label}</span>
+                {(theme.libraryView || "grid") === d.id && <CheckCircle size={16} style={{ color: "var(--accent)" }} />}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs font-semibold mb-2">Tamaño de portadas</p>
+          <div className="space-y-2">
+            {[
+              { id: "sm", label: "Pequeño" },
+              { id: "md", label: "Mediano" },
+              { id: "lg", label: "Grande" },
+            ].map(d => (
+              <button
+                key={d.id}
+                onClick={() => theme.setCoverSize?.(d.id)}
+                className="w-full text-left px-4 py-3.5 rounded-xl flex items-center justify-between"
+                style={{ background: (theme.coverSize || "md") === d.id ? "var(--surface2)" : "var(--surface)", border: (theme.coverSize || "md") === d.id ? "2px solid var(--accent)" : "1px solid var(--border)" }}
+              >
+                <span className="text-sm font-medium">{d.label}</span>
+                {(theme.coverSize || "md") === d.id && <CheckCircle size={16} style={{ color: "var(--accent)" }} />}
+              </button>
+            ))}
+          </div>
+        </FullScreen>
+      )}
+
+      {open && view === "tabOrder" && (
+        <FullScreen title="Barra inferior" onBack={back}>
+          <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>Cambia el orden con las flechas. Las pestañas se muestran así.</p>
+          <div className="space-y-2">
+            {(theme.tabOrder || DEFAULT_TAB_ORDER).map((id, idx) => {
+              const meta = TAB_META[id];
+              if (!meta) return null;
+              const Icon = meta.Icon;
+              return (
+                <div key={id} className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                  <Icon size={18} style={{ color: "var(--accent)" }} />
+                  <span className="text-sm font-medium flex-1">{t(meta.labelKey)}</span>
+                  <button
+                    disabled={idx === 0}
+                    onClick={() => {
+                      const next = [...(theme.tabOrder || DEFAULT_TAB_ORDER)];
+                      [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                      theme.setTabOrder?.(next);
+                    }}
+                    className="p-1.5 rounded-lg disabled:opacity-30"
+                    style={{ background: "var(--surface2)" }}
+                  >
+                    <ChevronUp size={16} />
+                  </button>
+                  <button
+                    disabled={idx === (theme.tabOrder || DEFAULT_TAB_ORDER).length - 1}
+                    onClick={() => {
+                      const next = [...(theme.tabOrder || DEFAULT_TAB_ORDER)];
+                      [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+                      theme.setTabOrder?.(next);
+                    }}
+                    className="p-1.5 rounded-lg disabled:opacity-30"
+                    style={{ background: "var(--surface2)" }}
+                  >
+                    <ChevronDown size={16} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <Btn variant="outline" className="w-full mt-4" onClick={() => theme.setTabOrder?.(DEFAULT_TAB_ORDER)}>Restablecer orden</Btn>
+        </FullScreen>
+      )}
+
       {open && view === "reader" && (
-        <FullScreen title={titles.reader} onBack={back}>
+        <FullScreen title={titles.reader} icon={titleIcons.reader} onBack={back}>
           <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>Preferencias por defecto al abrir un capítulo.</p>
           <PrefRow label={t("vertical") + " / " + t("paged")}>
             <Chip active={theme.readerPrefs.mode === "vertical"} onClick={() => theme.setReaderPrefs({ mode: "vertical" })}>{t("vertical")}</Chip>
@@ -2166,9 +3144,8 @@ function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
         </FullScreen>
       )}
 
-      {/* Idioma */}
       {open && view === "language" && (
-        <FullScreen title={titles.language} onBack={back}>
+        <FullScreen title={titles.language} icon={titleIcons.language} onBack={back}>
           <p className="text-sm font-semibold mb-3 flex items-center gap-1.5"><Globe size={15} /> {t("uiLanguage")}</p>
           <div className="space-y-2 mb-4">
             {LANGS.map((l, i) => (
@@ -2187,9 +3164,8 @@ function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
         </FullScreen>
       )}
 
-      {/* Notificaciones */}
       {open && view === "notifications" && (
-        <FullScreen title={titles.notifications} onBack={back}>
+        <FullScreen title={titles.notifications} icon={titleIcons.notifications} onBack={back}>
           <PrefRow label="Actualizaciones de capítulos">
             <Toggle on={theme.notifPrefs.chapterUpdates} onChange={(v) => theme.setNotifPrefs({ chapterUpdates: v })} />
           </PrefRow>
@@ -2219,16 +3195,33 @@ function SideDrawer({ open, onClose, nav, auth, setAuthModal }) {
           setInfoModal(null); setReportText("");
         }}>{t("sendReport")}</Btn>
       </Modal>
+
+      <Modal open={infoModal === "suggestion"} onClose={() => { setInfoModal(null); resetSuggestion(); }} title={t("suggestion")}>
+        <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>{t("suggestionTitleLabel")}</label>
+        <input value={suggTitle} onChange={e => setSuggTitle(e.target.value)} placeholder={t("suggestionTitlePh")} className="w-full px-3 py-2 rounded-lg text-sm outline-none mb-3" style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)" }} />
+
+        <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>{t("suggestionDescLabel")}</label>
+        <textarea value={suggDesc} onChange={e => setSuggDesc(e.target.value)} rows={3} placeholder={t("suggestionDescPh")} className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none mb-3" style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)" }} />
+
+        <label className="text-xs font-medium block mb-1" style={{ color: "var(--muted)" }}>{t("suggestionHelpLabel")}</label>
+        <textarea value={suggHelp} onChange={e => setSuggHelp(e.target.value)} rows={3} placeholder={t("suggestionHelpPh")} className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none mb-3" style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)" }} />
+
+        <Btn className="w-full" onClick={sendSuggestion} disabled={suggBusy}>{suggBusy ? t("sendingSuggestion") : t("sendSuggestion")}</Btn>
+      </Modal>
     </>
   );
 }
 
-/* ============================================================
-   BOTTOM NAV + TOP BAR
-   ============================================================ */
 function BottomNav({ page, nav }) {
   const t = useT();
-  const items = [["home", <Home size={20} />, t("home")], ["search", <Search size={20} />, t("search")], ["calendar", <CalendarIcon size={20} />, t("calendar")], ["library", <Library size={20} />, t("library")], ["profile", <User size={20} />, t("profile")]];
+  const theme = useTheme();
+  const order = theme.tabOrder || DEFAULT_TAB_ORDER;
+  const items = order.map(k => {
+    const meta = TAB_META[k];
+    if (!meta) return null;
+    const Icon = meta.Icon;
+    return [k, <Icon size={20} key={k} />, t(meta.labelKey)];
+  }).filter(Boolean);
   return (
     <div className="fixed bottom-0 left-0 right-0 flex items-center justify-around py-2 z-40" style={{ background: "var(--surface)", borderTop: "1px solid var(--border)", paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))" }}>
       {items.map(([k, icon, label]) => (
@@ -2243,24 +3236,41 @@ function TopBar({ nav, auth, setAuthModal, canGoBack, goBack, onMenu }) {
   const t = useT();
   return (
     <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3" style={{ background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
-      <div className="flex items-center gap-1">
-        <button onClick={onMenu} className="p-1 -ml-1 mr-0.5" style={{ color: "var(--text)" }} aria-label="Menu">
+      <div className="flex items-center gap-1 min-w-0">
+        <button onClick={onMenu} className="p-1 -ml-1 mr-0.5 shrink-0" style={{ color: "var(--text)" }} aria-label="Menu">
           <Menu size={22} />
         </button>
         {canGoBack && (
-          <button onClick={goBack} className="p-1" style={{ color: "var(--text)" }} aria-label="Volver">
+          <button onClick={goBack} className="p-1 shrink-0" style={{ color: "var(--text)" }} aria-label="Volver">
             <ChevronLeft size={22} />
           </button>
         )}
-        <button onClick={() => nav("home")} className="font-black text-lg tracking-tight flex items-center gap-1.5">
+        <button onClick={() => nav("home")} className="font-black text-lg tracking-tight flex items-center gap-1.5 truncate">
           <span style={{ color: "var(--accent)" }}>Kōmi</span>Verso
         </button>
       </div>
-      <div className="flex items-center gap-2">
-        <button onClick={() => nav("settings")}><Settings size={19} style={{ color: "var(--muted)" }} /></button>
+      <div className="flex items-center gap-2 shrink-0">
+        {APK_DOWNLOAD_URL ? (
+          <a
+            href={APK_DOWNLOAD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold no-underline whitespace-nowrap max-w-[46vw] sm:max-w-none"
+            style={{
+              background: "var(--accent)",
+              color: "#fff",
+              boxShadow: "0 0 0 1px var(--accent-border, transparent)",
+            }}
+            aria-label="Descarga el APK"
+            title="Descarga el APK"
+          >
+            <Download size={14} strokeWidth={2.5} className="shrink-0" />
+            <span>Descarga el APK</span>
+          </a>
+        ) : null}
         {auth.user ? (
           <button onClick={() => nav("profile")} className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold" style={{ background: "var(--surface2)" }}>
-            {auth.user.avatar ? <img src={auth.user.avatar} className="w-full h-full object-cover" /> : auth.user.username[0].toUpperCase()}
+            {auth.user.avatar ? <img src={auth.user.avatar} className="w-full h-full object-cover" /> : (auth.user.username || "?")[0].toUpperCase()}
           </button>
         ) : (
           <Btn size="sm" onClick={() => setAuthModal("login")}>{t("enter")}</Btn>
@@ -2270,13 +3280,210 @@ function TopBar({ nav, auth, setAuthModal, canGoBack, goBack, onMenu }) {
   );
 }
 
-/* ============================================================
-   ROOT APP
-   ============================================================ */
-// Pestañas que se cargan UNA sola vez (la primera vez que se visitan) y luego
-// se quedan montadas en segundo plano (display:none) al cambiar de sección,
-// para no repetir las llamadas a la API cada vez que se vuelve a esa pestaña.
 const TAB_PAGES = ["home", "search", "library", "calendar", "profile", "settings"];
+
+function SubscriptionModal({ open, onClose, auth, setAuthModal }) {
+  const [estado, setEstado] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (!open || !auth.user) return;
+    (async () => {
+      try { setEstado(await apiJson("/suscripcion/estado", { headers: await authHeaders() })); }
+      catch { setEstado(null); }
+    })();
+  }, [open, auth.user]);
+
+  const suscribirse = async () => {
+    setErr(""); setLoading(true);
+    try {
+      const { url } = await apiJson("/suscripcion/checkout", { method: "POST", headers: await authHeaders() });
+      if (url) window.location.href = url;
+    } catch (e) { setErr(e.message || "No se pudo iniciar el pago"); }
+    finally { setLoading(false); }
+  };
+
+  const cancelar = async () => {
+    setErr(""); setLoading(true);
+    try {
+      await apiJson("/suscripcion/cancelar", { method: "POST", headers: await authHeaders() });
+      setEstado(await apiJson("/suscripcion/estado", { headers: await authHeaders() }));
+    } catch (e) { setErr(e.message || "No se pudo cancelar"); }
+    finally { setLoading(false); }
+  };
+
+  const esFan = estado?.plan === "fan";
+
+  return (
+    <Modal open={open} onClose={onClose} title="✦ Suscripción">
+      {!auth.user ? (
+        <div className="text-center py-2">
+          <p className="text-sm mb-3" style={{ color: "var(--muted)" }}>Inicia sesión para suscribirte y quitar los anuncios.</p>
+          <Btn onClick={() => { onClose(); setAuthModal("login"); }}>Iniciar sesión</Btn>
+        </div>
+      ) : (
+        <div>
+          {err && <p className="text-xs mb-3" style={{ color: "#f66" }}>{err}</p>}
+          <div className="flex flex-col gap-3 mb-2">
+            {PLANS.map((plan) => {
+              const isFree = plan.id === "free";
+              const current = (plan.id === "fan") === esFan;
+              return (
+                <div key={plan.id} className="rounded-xl p-4" style={{ background: "var(--surface2)", border: current ? "2px solid var(--accent)" : "1px solid var(--border)" }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-sm">{plan.nombre}</span>
+                    {current && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: "var(--accent)" }}>Tu plan actual</span>}
+                  </div>
+                  <p className="text-xl font-extrabold">{plan.precio} <span className="text-xs font-normal" style={{ color: "var(--muted)" }}>{plan.periodo}</span></p>
+                  <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{plan.detalle}</p>
+                  {!isFree && !current && (
+                    <Btn disabled={loading} onClick={suscribirse} className="w-full mt-3">{loading ? "Cargando…" : "Suscribirme"}</Btn>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {esFan && estado?.planRenewsAt && (
+            <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>Próxima renovación: {new Date(estado.planRenewsAt).toLocaleDateString()}</p>
+          )}
+          {esFan && (
+            <Btn variant="outline" disabled={loading} onClick={cancelar} className="w-full">Cancelar suscripción</Btn>
+          )}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function SocialModal({ open, onClose }) {
+  const item = (emoji, label, url) => (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 w-full px-4 py-3 rounded-lg mb-2 text-sm font-medium" style={{ background: "var(--surface2)", color: "var(--text)" }}>
+      <span className="text-lg">{emoji}</span>{label}
+    </a>
+  );
+  return (
+    <Modal open={open} onClose={onClose} title="Comunidad y apoyo">
+      {item("🎮", "Únete a nuestro Discord", SOCIAL_LINKS.discord)}
+      {item("🎵", "Síguenos en TikTok", SOCIAL_LINKS.tiktok)}
+      {item("💜", "Apoya a KomiVerso con una donación voluntaria ♥", SOCIAL_LINKS.paypal)}
+      <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>Las donaciones son voluntarias y ayudan a mejorar la app y la web.</p>
+    </Modal>
+  );
+}
+
+const FAB_W = 52, FAB_H = 122;
+
+function FloatingButtons({ onOpenSub, onOpenSocial }) {
+  const [pos, setPos] = useState(null);
+  const dragRef = useRef({ dragging: false, moved: false, startX: 0, startY: 0, origX: 0, origY: 0 });
+
+  useEffect(() => {
+    (async () => {
+      const saved = await sget("fabPos");
+      const vw = window.innerWidth, vh = window.innerHeight;
+      let x, y;
+      if (saved && typeof saved.x === "number" && typeof saved.y === "number") {
+        x = Math.min(Math.max(saved.x, 4), vw - FAB_W - 4);
+        y = Math.min(Math.max(saved.y, 4), vh - FAB_H - 4);
+      } else {
+        const colRight = Math.max(16, vw / 2 - 256 + 16);
+        x = vw - colRight - FAB_W;
+        y = vh - 88 - FAB_H;
+      }
+      setPos({ x, y });
+    })();
+  }, []);
+
+  const onPointerDown = (e) => {
+    if (!pos) return;
+    dragRef.current = { dragging: true, moved: false, startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const onPointerMove = (e) => {
+    const d = dragRef.current;
+    if (!d.dragging) return;
+    const dx = e.clientX - d.startX, dy = e.clientY - d.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) d.moved = true;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    setPos({ x: Math.min(Math.max(d.origX + dx, 4), vw - FAB_W - 4), y: Math.min(Math.max(d.origY + dy, 4), vh - FAB_H - 4) });
+  };
+  const onPointerUp = () => {
+    const d = dragRef.current;
+    if (!d.dragging) return;
+    d.dragging = false;
+    setPos((p) => { if (p) sset("fabPos", p); return p; });
+  };
+  const click = (fn) => () => { if (dragRef.current.moved) { dragRef.current.moved = false; return; } fn(); };
+
+  if (!pos) return null;
+  return (
+    <div
+      className="fixed flex flex-col gap-3 z-50 select-none"
+      style={{ left: pos.x, top: pos.y, cursor: "grab", touchAction: "none" }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
+      <button onClick={click(onOpenSocial)} aria-label="Comunidad y apoyo" className="w-11 h-11 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--accent)" }}>
+        <Heart size={19} />
+      </button>
+      <button onClick={click(onOpenSub)} aria-label="Suscripción" className="w-13 h-13 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform" style={{ width: 52, height: 52, background: "var(--accent)", color: "#fff" }}>
+        <Sparkles size={22} />
+      </button>
+    </div>
+  );
+}
+
+const PAGO_MENSAJES = {
+  exito: { texto: "¡Listo! Ya eres Fan — gracias por tu apoyo ♥", color: "#2fbf71" },
+  fallo: { texto: "El pago no se pudo procesar. Puedes intentarlo de nuevo cuando quieras.", color: "#e0555c" },
+  cancelado: { texto: "Se canceló la suscripción. Seguirás sin anuncios hasta que termine el periodo ya pagado.", color: "var(--muted)" },
+};
+
+function PagoStatusBanner({ auth }) {
+  const [pago, setPago] = useState(null);
+  const pollRef = useRef(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const valor = params.get("pago");
+    if (!valor || !PAGO_MENSAJES[valor]) return;
+
+    setPago(valor);
+
+    params.delete("pago");
+    const resto = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (resto ? `?${resto}` : ""));
+
+    if (valor === "exito" && auth?.refreshUser) {
+      let intentos = 0;
+      pollRef.current = setInterval(async () => {
+        intentos += 1;
+        const u = await auth.refreshUser();
+        if ((u && u.plan === "fan") || intentos >= 6) clearInterval(pollRef.current);
+      }, 3000);
+    }
+
+    return () => clearInterval(pollRef.current);
+  }, []);
+
+  if (!pago) return null;
+  const info = PAGO_MENSAJES[pago];
+
+  return (
+    <div
+      className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between gap-3 px-4 py-3 text-sm text-white"
+      style={{ background: info.color }}
+    >
+      <span>{info.texto}</span>
+      <button onClick={() => setPago(null)} className="shrink-0 opacity-80 hover:opacity-100" aria-label="Cerrar">
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
 
 function AppInner() {
   const [page, setPage] = useState("home");
@@ -2285,17 +3492,13 @@ function AppInner() {
   const [searchParam, setSearchParam] = useState(null);
   const [authModal, setAuthModal] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  // Qué pestañas ya se visitaron al menos una vez (por eso siguen montadas).
+  const [subOpen, setSubOpen] = useState(false);
+  const [socialOpen, setSocialOpen] = useState(false);
   const [visited, setVisited] = useState(() => new Set(["home"]));
-  // Pila de "dónde estaba antes": cada vez que nav() cambia de sección, se
-  // guarda ahí el estado anterior completo (página + su parámetro), para que
-  // el botón "Atrás" pueda restaurarlo exactamente — funciona en cualquier
-  // sección (settings, lector, detalle de manga, pestañas, etc.), no solo en
-  // un caso puntual.
   const [navStack, setNavStack] = useState([]);
   const auth = useAuth();
   const lib = useLibrary(auth.user?.email);
-  const history = useHistory(auth.user?.email);
+  const history = useHistory(auth.user?.email, auth);
 
   const markVisited = (p) => setVisited(v => (v.has(p) ? v : new Set(v).add(p)));
 
@@ -2308,11 +3511,10 @@ function AppInner() {
     else if (p === "search") { nextSearchParam = arg || null; markVisited("search"); }
     else { markVisited(p); }
 
-    // No apilar si en realidad no cambia nada relevante (evita entradas vacías).
     const noop = prevSnapshot.page === nextPage
       && (nextPage !== "manga" || prevSnapshot.mangaId === nextMangaId)
       && (nextPage !== "reader" || prevSnapshot.readerTarget?.chapterId === nextReaderTarget?.chapterId);
-    if (!noop) setNavStack(s => [...s.slice(-29), prevSnapshot]); // tope de 30 pasos atrás
+    if (!noop) setNavStack(s => [...s.slice(-29), prevSnapshot]);
 
     setPage(nextPage); setMangaId(nextMangaId); setReaderTarget(nextReaderTarget); setSearchParam(nextSearchParam);
     window.scrollTo(0, 0);
@@ -2332,6 +3534,7 @@ function AppInner() {
 
   return (
     <div className="max-w-lg mx-auto min-h-screen relative" style={{ paddingBottom: isReader ? 0 : 64 }}>
+      <PagoStatusBanner auth={auth} />
       {!isReader && <TopBar nav={nav} auth={auth} setAuthModal={setAuthModal} canGoBack={navStack.length > 0} goBack={goBack} onMenu={() => setMenuOpen(true)} />}
       <SideDrawer open={menuOpen} onClose={() => setMenuOpen(false)} nav={nav} auth={auth} setAuthModal={setAuthModal} />
 
@@ -2346,12 +3549,13 @@ function AppInner() {
         </div>
       ))}
 
-      {/* Detalle de manga y lector: se recargan a propósito cada vez, para
-          mostrar siempre los capítulos más recientes de esa obra en concreto. */}
       {page === "manga" && <MangaPage id={mangaId} nav={nav} lib={lib} auth={auth} setAuthModal={setAuthModal} />}
-      {page === "reader" && <ReaderPage target={readerTarget} nav={nav} history={history} auth={auth} goBack={navStack.length > 0 ? goBack : null} />}
+      {page === "reader" && <ReaderPage key={readerTarget?.chapterId} target={readerTarget} nav={nav} history={history} auth={auth} goBack={navStack.length > 0 ? goBack : null} />}
 
       {!isReader && <BottomNav page={page} nav={nav} />}
+      {!isReader && <FloatingButtons onOpenSub={() => setSubOpen(true)} onOpenSocial={() => setSocialOpen(true)} />}
+      <SubscriptionModal open={subOpen} onClose={() => setSubOpen(false)} auth={auth} setAuthModal={setAuthModal} />
+      <SocialModal open={socialOpen} onClose={() => setSocialOpen(false)} />
       <AuthModals authModal={authModal} setAuthModal={setAuthModal} />
     </div>
   );

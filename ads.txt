@@ -1,0 +1,3 @@
+# ExoClick no requiere un archivo ads.txt como AdSense.
+# Si en el futuro agregás otra red que sí lo pida, agregá su línea aquí.
+

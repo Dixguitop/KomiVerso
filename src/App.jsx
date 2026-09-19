@@ -27,7 +27,7 @@ const APK_DOWNLOAD_URL = "https://komi-verso-downloadapp.vercel.app/";
 const EXOCLICK_ZONE_ID = "1112834";
 const ADSTERRA_KEY = "f9070d64740e53c83baf5a67aedd9520"; // <-- CAMBIA ESTO por la key de Adsterra de tu web
 const AD_MIN_SECONDS = 15;
-const AD_EVERY_N_CHAPTERS = 4;
+const AD_EVERY_N_CHAPTERS = 3;
 const ADSENSE_CONFIGURADO = !!EXOCLICK_ZONE_ID || !!ADSTERRA_KEY;
 const EXOCLICK_SCRIPT_SRC = "https://a.magsrv.com/ad-provider.js";
 

@@ -243,7 +243,7 @@ const I18N = {
     completeEmailPass: "Completa correo y contraseña.", passwordsMismatch: "Las contraseñas no coinciden.",
     enterEmailNewPass: "Ingresa tu correo y la nueva contraseña.",
     aboutText: "KōmiVerso es una alternativa a otros lectores, su host actual es gratuito asi que presentara muchas caidas, esperamos con el apoyo de nuestros lectores y con ingresos de la misma app poder ofrecer un mejor servicio.",
-    contactText: "¿Sugerencias o problemas? Escríbenos a soporte@komiverso.app",
+    contactText: "¿Sugerencias o problemas? Escríbenos a komisupport@gmail.com",
     reportSent: "Problema reportado. Gracias por avisarnos.", reportPlaceholder: "Describe el problema…",
     sendReport: "Enviar reporte", close: "Cerrar",
     suggestionTitleLabel: "Título", suggestionTitlePh: "Un título corto para tu idea…",

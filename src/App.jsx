@@ -88,7 +88,7 @@ ${ADSTERRA_SOCIALBAR_SRC ? `
 
 const PLANS = [
   { id: "free", nombre: "Free", precio: "$0", periodo: "", detalle: "Anuncios cada 4 capítulos" },
-  { id: "fan", nombre: "Fan", precio: "$7", periodo: "USD / mes", detalle: "Te quitamos los anuncios y nos estarias apoyando un montón ♥." },
+  { id: "fan", nombre: "Fan", precio: "$3", periodo: "USD / mes", detalle: "Te quitamos los anuncios y nos estarias apoyando un montón ♥." },
 ];
 
 function resolveAssetUrl(src) {

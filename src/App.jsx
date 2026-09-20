@@ -30,7 +30,7 @@ const ADSTERRA_KEY = "f9070d64740e53c83baf5a67aedd9520"; // <-- CAMBIA ESTO por 
 // Websites → tu sitio → Add unit → Social Bar. Te da un <script src="...">
 // completo (no una key sola) — pega esa URL completa aquí tal cual.
 // Déjalo en "" si todavía no lo vas a usar.
-const ADSTERRA_SOCIALBAR_SRC = ""; // <-- CAMBIA ESTO por el src del script de tu Social Bar (web)
+const ADSTERRA_SOCIALBAR_SRC = "https://pl31422385.profitableratecpmnetwork.com/88/49/2c/88492cdd627933789104a651e1405e6c.js"; // <-- CAMBIA ESTO por el src del script de tu Social Bar (web)
 const AD_MIN_SECONDS = 15;
 const AD_EVERY_N_CHAPTERS = 4;
 const ADSENSE_CONFIGURADO = !!EXOCLICK_ZONE_ID || !!ADSTERRA_KEY;
